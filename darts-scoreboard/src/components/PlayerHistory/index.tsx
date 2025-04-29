@@ -1,5 +1,5 @@
-import React from 'react';
-import styles from './App.module.css';
+import React from "react";
+import styles from "./PlayerHistory.module.css";
 
 interface PlayerHistoryProps {
   throws: number[];

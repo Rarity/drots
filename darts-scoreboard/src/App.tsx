@@ -1,155 +1,57 @@
-import React, { useState, useRef, useEffect } from "react";
-import PlayerHistory from "./PlayerHistory";
-import PlayerScoreGraph from "./PlayerScoreGraph";
-import styles from "./App.module.css";
-
-interface Player {
-  name: string;
-  score: number;
-  throws: number[];
-  place?: number;
-}
+import React, { useRef, useEffect } from 'react';
+import { useGameStore } from './store/gameStore';
+import PlayerHistory from './components/PlayerHistory';
+import PlayerScoreGraph from './components/PlayerScoreGraph';
+import ThrowInputRow from './components/ThrowInputRow';
+import styles from './App.module.css';
 
 const App: React.FC = () => {
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
-  const [gameStarted, setGameStarted] = useState(false);
-  const [gameEnded, setGameEnded] = useState(false);
-  const [inputName, setInputName] = useState("");
-  const [throwInputs, setThrowInputs] = useState<number[][]>([
-    [0, 0, 0],
-    [0, 0, 0],
-    [0, 0, 0],
-  ]);
-  const [historyPlayer, setHistoryPlayer] = useState<Player | null>(null);
+  const {
+    players,
+    currentPlayerIndex,
+    gameStarted,
+    gameEnded,
+    inputName,
+    throwInputs,
+    historyPlayer,
+    addPlayer,
+    startGame,
+    handleThrowInput,
+    submitThrows,
+    resetGame,
+    setHistoryPlayer,
+    setInputName,
+    calculateThrowScore,
+    calculateTotalScore,
+  } = useGameStore();
+
   const nameInputRef = useRef<HTMLInputElement>(null);
-  const throwInputRef = useRef<HTMLInputElement>(null);
+  const throwInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
-    if (!gameStarted && !gameEnded) {
-      nameInputRef.current?.focus();
-    } else if (gameStarted && !gameEnded) {
-      throwInputRef.current?.focus();
+    if (!gameStarted && !gameEnded && nameInputRef.current) {
+      nameInputRef.current.focus();
+    } else if (gameStarted && !gameEnded && throwInputRefs.current[0]) {
+      throwInputRefs.current[0].focus();
     }
-  }, [players, gameStarted, gameEnded, currentPlayerIndex]);
+  }, [gameStarted, gameEnded, currentPlayerIndex]);
 
-  const addPlayer = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && inputName.trim()) {
-      setPlayers([
-        ...players,
-        { name: inputName.trim(), score: 501, throws: [] },
-      ]);
-      setInputName("");
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && inputName.trim()) {
+      addPlayer(inputName);
     }
   };
 
-  const startGame = () => {
-    if (players.length < 2) {
-      alert("Добавь хотя бы двух игроков, дебил!");
-      return;
-    }
-    setGameStarted(true);
-  };
-
-  const handleThrowInput = (row: number, col: number, value: string) => {
-    const newThrows = [...throwInputs];
-    newThrows[row][col] = parseInt(value) || 0;
-    setThrowInputs(newThrows);
-  };
-
-  const calculateThrowScore = (row: number) => {
-    const [x1, x2, x3] = throwInputs[row];
-    return x1 + x2 * 2 + x3 * 3;
-  };
-
-  const calculateTotalScore = () => {
-    return throwInputs.reduce(
-      (sum, _, row) => sum + calculateThrowScore(row),
-      0,
-    );
-  };
-
-  const getNextActivePlayerIndex = (currentIndex: number) => {
-    let nextIndex = (currentIndex + 1) % players.length;
-    let attempts = 0;
-
-    while (attempts < players.length) {
-      const player = players[nextIndex];
-      if (player.score > 0 && !player.place) {
-        return nextIndex;
-      }
-      nextIndex = (nextIndex + 1) % players.length;
-      attempts++;
-    }
-
-    return currentIndex;
-  };
-
-  const submitThrows = () => {
-    const totalThrow = calculateTotalScore();
-    const currentPlayer = players[currentPlayerIndex];
-    const newScore = currentPlayer.score - totalThrow;
-
-    if (newScore < 0) {
-      alert("Перебор, дебил! Кидай нормально!");
-      setThrowInputs([
-        [0, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0],
-      ]);
-      throwInputRef.current?.focus();
-      setCurrentPlayerIndex(getNextActivePlayerIndex(currentPlayerIndex));
-      return;
-    }
-
-    const updatedPlayers = [...players];
-    updatedPlayers[currentPlayerIndex] = {
-      ...currentPlayer,
-      score: newScore,
-      throws: [...currentPlayer.throws, totalThrow],
-    };
-
-    if (newScore === 0) {
-      const place = players.filter((p) => p.place).length + 1;
-      updatedPlayers[currentPlayerIndex].place = place;
-      if (updatedPlayers.every((p) => p.score === 0 || p.place)) {
-        setGameEnded(true);
-      }
-    }
-
-    setPlayers(updatedPlayers);
-    setThrowInputs([
-      [0, 0, 0],
-      [0, 0, 0],
-      [0, 0, 0],
-    ]);
-    setCurrentPlayerIndex(getNextActivePlayerIndex(currentPlayerIndex));
-  };
-
-  const resetGame = () => {
-    setPlayers([]);
-    setCurrentPlayerIndex(0);
-    setGameStarted(false);
-    setGameEnded(false);
-    setInputName("");
-    setThrowInputs([
-      [0, 0, 0],
-      [0, 0, 0],
-      [0, 0, 0],
-    ]);
-    setHistoryPlayer(null);
-  };
-
-  const getMedal = (place?: number) => {
+  const getMedal = (place?: number): string => {
     switch (place) {
       case 1:
-        return "🥇";
+        return '🥇';
       case 2:
-        return "🥈";
+        return '🥈';
       case 3:
-        return "🥉";
+        return '🥉';
       default:
-        return "🎀";
+        return '🎀';
     }
   };
 
@@ -166,15 +68,15 @@ const App: React.FC = () => {
           <input
             ref={nameInputRef}
             type="text"
-            value={inputName}
+            value={inputName || ''}
             onChange={(e) => setInputName(e.target.value)}
-            onKeyPress={addPlayer}
+            onKeyPress={handleKeyPress}
             placeholder="Имя игрока, дебил"
             className={styles.input}
           />
           <div className={styles.playerList}>
             {players.map((player, index) => (
-              <div key={index} className={styles.playerTag}>
+              <div key={player.name + index} className={styles.playerTag}>
                 {player.name}
               </div>
             ))}
@@ -188,13 +90,15 @@ const App: React.FC = () => {
       {gameStarted && !gameEnded && (
         <div className={styles.game}>
           <h2 className={styles.currentPlayer}>
-            Сейчас кидает: {players[currentPlayerIndex].name}
+            Сейчас кидает: {players[currentPlayerIndex]?.name || 'Никто, дебил!'}
           </h2>
           <div className={styles.players}>
             {players.map((player, index) => (
               <div
-                key={player.name}
-                className={`${styles.player} ${index === currentPlayerIndex ? styles.activePlayer : ""}`}
+                key={player.name + index}
+                className={`${styles.player} ${
+                  index === currentPlayerIndex ? styles.activePlayer : ''
+                }`}
               >
                 <h3 className={styles.playerName}>
                   {player.name} {player.place && getMedal(player.place)}
@@ -213,39 +117,16 @@ const App: React.FC = () => {
           <div className={styles.throwSection}>
             <h3 className={styles.subtitle}>Броски</h3>
             {throwInputs.map((row, rowIndex) => (
-              <div key={rowIndex} className={styles.throwInputs}>
-                <input
-                  ref={rowIndex === 0 ? throwInputRef : null}
-                  type="number"
-                  value={row[0] || ""}
-                  onChange={(e) =>
-                    handleThrowInput(rowIndex, 0, e.target.value)
-                  }
-                  placeholder="x1"
-                  className={styles.throwInput}
-                />
-                <input
-                  type="number"
-                  value={row[1] || ""}
-                  onChange={(e) =>
-                    handleThrowInput(rowIndex, 1, e.target.value)
-                  }
-                  placeholder="x2"
-                  className={styles.throwInput}
-                />
-                <input
-                  type="number"
-                  value={row[2] || ""}
-                  onChange={(e) =>
-                    handleThrowInput(rowIndex, 2, e.target.value)
-                  }
-                  placeholder="x3"
-                  className={styles.throwInput}
-                />
-                <span className={styles.throwScore}>
-                  = {calculateThrowScore(rowIndex)}
-                </span>
-              </div>
+              <ThrowInputRow
+                key={rowIndex}
+                rowIndex={rowIndex}
+                score={row[0]}
+                modifier={row[1] || ''} // Прямо используем row[1] как Modifier
+                onThrowInput={(index, score, modifier) =>
+                  handleThrowInput(index, score, modifier)
+                }
+                calculateThrowScore={calculateThrowScore}
+              />
             ))}
             <div className={styles.totalScore}>
               Итого: {calculateTotalScore()}
@@ -272,8 +153,8 @@ const App: React.FC = () => {
               {players
                 .sort((a, b) => (a.place || Infinity) - (b.place || Infinity))
                 .map((player, index) => (
-                  <tr key={index}>
-                    <td>{player.place}</td>
+                  <tr key={player.name + index}>
+                    <td>{player.place || '-'}</td>
                     <td>{player.name}</td>
                     <td>{getMedal(player.place)}</td>
                   </tr>
