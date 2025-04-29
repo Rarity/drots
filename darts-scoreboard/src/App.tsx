@@ -3,8 +3,10 @@ import { useGameStore } from './store/gameStore';
 import PlayerHistory from './components/PlayerHistory';
 import PlayerScoreGraph from './components/PlayerScoreGraph';
 import ThrowInputRow from './components/ThrowInputRow';
-
 import Alert from './components/Alert';
+
+import { getMedal } from './utils';
+
 import styles from './App.module.css';
 
 const App: React.FC = () => {
@@ -41,30 +43,25 @@ const App: React.FC = () => {
     }
   }, [gameStarted, gameEnded, currentPlayerIndex]);
 
-  useEffect(() => {
-    if (error) {
-      setTimeout(() => clearError(), 3000); // Сбрасываем ошибку через 3 сек
-    }
-  }, [error, clearError]);
-
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && inputName.trim()) {
       addPlayer(inputName);
     }
   };
 
-  const getMedal = (place?: number): string => {
-    switch (place) {
-      case 1:
-        return '🥇';
-      case 2:
-        return '🥈';
-      case 3:
-        return '🥉';
-      default:
-        return '🎀';
-    }
-  };
+  // const getMedal = (place?: number): string => {
+  //   if (!place) return '';
+  //   switch (place) {
+  //     case 1:
+  //       return '🥇';
+  //     case 2:
+  //       return '🥈';
+  //     case 3:
+  //       return '🥉';
+  //     default:
+  //       return '🎀';
+  //   }
+  // };
 
   const calculatePlayerTotalScore = (throws: number[]) => {
     return throws.reduce((sum, score) => sum + score, 0);

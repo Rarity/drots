@@ -17,7 +17,7 @@ interface GameState {
   throwInputs: Array<[number | undefined, Modifier]>;
   historyPlayer: Player | null;
   error: string | null;
-  round: number; // Новый стейт для раунда
+  round: number;
   addPlayer: (name: string) => void;
   startGame: () => void;
   handleThrowInput: (rowIndex: number, score: number | undefined, modifier: Modifier) => void;
@@ -39,7 +39,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   throwInputs: [[undefined, ''], [undefined, ''], [undefined, '']],
   historyPlayer: null,
   error: null,
-  round: 1, // Начинаем с 1-го раунда
+  round: 1,
 
   addPlayer: (name) =>
     set((state) => ({
@@ -59,15 +59,24 @@ export const useGameStore = create<GameState>((set, get) => ({
     set((state) => {
       const newThrowInputs = [...state.throwInputs];
       newThrowInputs[rowIndex] = [score, modifier];
-      return { throwInputs: newThrowInputs, error: null }; // Сбрасываем ошибку при вводе
+      return { throwInputs: newThrowInputs, error: null };
     }),
 
   submitThrows: () => {
     const state = get();
     const totalScore = state.calculateTotalScore();
     const currentPlayer = state.players[state.currentPlayerIndex];
-    const nextPlayerIndex = (state.currentPlayerIndex + 1) % state.players.length;
-    const newRound = nextPlayerIndex === 0 ? state.round + 1 : state.round;
+
+    // Находим следующий активный индекс (скипаем игроков с score === 0)
+    let nextPlayerIndex = state.currentPlayerIndex;
+    let newRound = state.round;
+    do {
+      nextPlayerIndex = (nextPlayerIndex + 1) % state.players.length;
+      if (nextPlayerIndex === 0) newRound += 1;
+    } while (
+      state.players[nextPlayerIndex]?.score === 0 &&
+      nextPlayerIndex !== state.currentPlayerIndex
+    );
 
     if (totalScore > currentPlayer.score) {
       set({
@@ -82,16 +91,25 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (totalScore <= currentPlayer.score) {
       set((state) => {
         const newPlayers = [...state.players];
+        const newScore = currentPlayer.score - totalScore;
+        const isFinish = newScore === 0;
         newPlayers[state.currentPlayerIndex] = {
           ...currentPlayer,
-          score: currentPlayer.score - totalScore,
+          score: newScore,
           throws: [...currentPlayer.throws, totalScore],
+          place: isFinish
+            ? (state.players.filter((p) => p.place).length + 1)
+            : currentPlayer.place,
         };
+
+        // Проверяем, все ли игроки закончили (score === 0)
+        const allFinished = newPlayers.every((p) => p.score === 0);
+
         return {
           players: newPlayers,
           throwInputs: [[undefined, ''], [undefined, ''], [undefined, '']],
           currentPlayerIndex: nextPlayerIndex,
-          gameEnded: newPlayers[state.currentPlayerIndex].score === 0,
+          gameEnded: allFinished,
           round: newRound,
           error: null,
         };
