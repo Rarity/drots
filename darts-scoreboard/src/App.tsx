@@ -61,47 +61,45 @@ const App: React.FC = () => {
     <div className={styles.container}>
       <h1 className={styles.title}>Берись за дрот! 🎯</h1>
 
-      <div className={styles.setup}>
-        <div className={styles.inputWrapper}>
-          <input
-            ref={nameInputRef}
-            type="text"
-            value={inputName || ''}
-            onChange={(e) => setInputName(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Имя игрока, дебил"
-            className={styles.input}
-          />
-          <button
-            onClick={handleAddPlayer}
-            className={styles.addButton}
-            disabled={!inputName.trim()}
-          >
-            ➕
-          </button>
-        </div>
-        <div className={styles.playerList}>
-          {players.map((player, index) => (
-            <div key={player.name + index} className={styles.playerTag}>
-              {player.name}
-            </div>
-          ))}
-        </div>
-        {!gameStarted && (
-          <div className={styles.setupActions}>
+      {!gameStarted && !gameEnded && (
+        <div className={styles.setup}>
+          <div className={styles.inputWrapper}>
+            <input
+              ref={nameInputRef}
+              type="text"
+              value={inputName || ''}
+              onChange={(e) => setInputName(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Имя игрока, дебил"
+              className={styles.input}
+            />
             <button
-              onClick={startGame}
-              className={styles.button}
-              disabled={players.length === 0}
+              onClick={handleAddPlayer}
+              className={styles.addButton}
+              disabled={!inputName.trim()}
             >
-              Начать игру, лохи!
+              ➕
             </button>
           </div>
-        )}
-        <div className={styles.setupOptions}>
-          {/* Место для будущих опций */}
+          <div className={styles.playerList}>
+            {players.map((player, index) => (
+              <div key={player.name + index} className={styles.playerTag}>
+                {player.name}
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={startGame}
+            className={styles.button}
+            disabled={players.length === 0}
+          >
+            Начать игру, лохи!
+          </button>
+          <div className={styles.setupOptions}>
+            {/* Место для будущих опций */}
+          </div>
         </div>
-      </div>
+      )}
 
       {gameStarted && !gameEnded && (
         <div className={styles.game}>
