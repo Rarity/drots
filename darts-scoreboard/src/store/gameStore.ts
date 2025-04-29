@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { Modifier } from '../constants';
 
-
 interface Player {
   name: string;
   score: number;
@@ -17,6 +16,8 @@ interface GameState {
   inputName: string;
   throwInputs: Array<[number | undefined, Modifier]>;
   historyPlayer: Player | null;
+  error: string | null;
+  round: number; // Новый стейт для раунда
   addPlayer: (name: string) => void;
   startGame: () => void;
   handleThrowInput: (rowIndex: number, score: number | undefined, modifier: Modifier) => void;
@@ -26,6 +27,7 @@ interface GameState {
   setInputName: (name: string) => void;
   calculateThrowScore: (rowIndex: number) => number;
   calculateTotalScore: () => number;
+  clearError: () => void;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -36,6 +38,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   inputName: '',
   throwInputs: [[undefined, ''], [undefined, ''], [undefined, '']],
   historyPlayer: null,
+  error: null,
+  round: 1, // Начинаем с 1-го раунда
 
   addPlayer: (name) =>
     set((state) => ({
@@ -46,19 +50,34 @@ export const useGameStore = create<GameState>((set, get) => ({
   startGame: () =>
     set((state) => ({
       gameStarted: state.players.length > 0,
+      throwInputs: [[undefined, ''], [undefined, ''], [undefined, '']],
+      round: 1,
+      error: null,
     })),
 
   handleThrowInput: (rowIndex, score, modifier) =>
     set((state) => {
       const newThrowInputs = [...state.throwInputs];
       newThrowInputs[rowIndex] = [score, modifier];
-      return { throwInputs: newThrowInputs };
+      return { throwInputs: newThrowInputs, error: null }; // Сбрасываем ошибку при вводе
     }),
 
   submitThrows: () => {
     const state = get();
     const totalScore = state.calculateTotalScore();
     const currentPlayer = state.players[state.currentPlayerIndex];
+    const nextPlayerIndex = (state.currentPlayerIndex + 1) % state.players.length;
+    const newRound = nextPlayerIndex === 0 ? state.round + 1 : state.round;
+
+    if (totalScore > currentPlayer.score) {
+      set({
+        error: 'Переброс, дебил! Введи очки не больше, чем осталось!',
+        throwInputs: [[undefined, ''], [undefined, ''], [undefined, '']],
+        currentPlayerIndex: nextPlayerIndex,
+        round: newRound,
+      });
+      return;
+    }
 
     if (totalScore <= currentPlayer.score) {
       set((state) => {
@@ -71,8 +90,10 @@ export const useGameStore = create<GameState>((set, get) => ({
         return {
           players: newPlayers,
           throwInputs: [[undefined, ''], [undefined, ''], [undefined, '']],
-          currentPlayerIndex: (state.currentPlayerIndex + 1) % state.players.length,
+          currentPlayerIndex: nextPlayerIndex,
           gameEnded: newPlayers[state.currentPlayerIndex].score === 0,
+          round: newRound,
+          error: null,
         };
       });
     }
@@ -87,6 +108,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       inputName: '',
       throwInputs: [[undefined, ''], [undefined, ''], [undefined, '']],
       historyPlayer: null,
+      error: null,
+      round: 1,
     }),
 
   setHistoryPlayer: (player) => set({ historyPlayer: player }),
@@ -94,7 +117,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   setInputName: (name) => set({ inputName: name }),
 
   calculateThrowScore: (rowIndex) => {
-    const [score, modifier] = get().throwInputs[rowIndex];
+    const throwInput = get().throwInputs[rowIndex];
+    if (!throwInput) return 0;
+    const [score, modifier] = throwInput;
     if (!score) return 0;
     switch (modifier) {
       case 'x2':
@@ -113,4 +138,6 @@ export const useGameStore = create<GameState>((set, get) => ({
   calculateTotalScore: () => {
     return get().throwInputs.reduce((sum, _, index) => sum + get().calculateThrowScore(index), 0);
   },
+
+  clearError: () => set({ error: null }),
 }));

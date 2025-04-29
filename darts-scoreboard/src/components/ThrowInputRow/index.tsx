@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
-import styles from './ThrowInputRow.module.css';
-
+import React, { useState, useEffect } from 'react';
 import { Modifier, MODIFIERS } from '../../constants';
+import styles from './styles.module.css';
 
 interface ThrowInputRowProps {
   rowIndex: number;
@@ -20,6 +19,11 @@ const ThrowInputRow: React.FC<ThrowInputRowProps> = ({
 }) => {
   const [localScore, setLocalScore] = useState<number | undefined>(score);
   const [localModifier, setLocalModifier] = useState<Modifier>(modifier);
+
+  useEffect(() => {
+    setLocalScore(score);
+    setLocalModifier(modifier);
+  }, [score, modifier]);
 
   const updateThrow = (
     newScore: number | undefined = localScore,
@@ -41,24 +45,27 @@ const ThrowInputRow: React.FC<ThrowInputRowProps> = ({
   };
 
   return (
-    <div className={styles.throwInputs}>
+    <div className={styles.throwRow}>
       <input
         type="number"
         value={localScore ?? ''}
         onChange={handleScoreChange}
         placeholder="Счет"
-        className={styles.throwInput}
+        className={styles.scoreInput}
       />
-      {MODIFIERS.map((mod) => (
-        <label key={mod} style={{ marginLeft: '10px' }}>
-          <input
-            type="checkbox"
-            checked={localModifier === mod}
-            onChange={() => handleCheckboxChange(mod)}
-          />
-          {mod}
-        </label>
-      ))}
+      <div className={styles.modifierGroup}>
+        {MODIFIERS.map((mod) => (
+          <label key={mod} className={styles.modifierLabel}>
+            <input
+              type="checkbox"
+              checked={localModifier === mod}
+              onChange={() => handleCheckboxChange(mod)}
+              className={styles.modifierCheckbox}
+            />
+            <span className={styles.modifierText}>{mod}</span>
+          </label>
+        ))}
+      </div>
       <span className={styles.throwScore}>= {calculateThrowScore(rowIndex)}</span>
     </div>
   );

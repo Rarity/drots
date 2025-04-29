@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import styles from "./PlayerScoreGraph.module.css";
+import styles from "./styles.module.css";
 
 interface PlayerScoreGraphProps {
   throws: number[];

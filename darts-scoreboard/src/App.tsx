@@ -3,6 +3,8 @@ import { useGameStore } from './store/gameStore';
 import PlayerHistory from './components/PlayerHistory';
 import PlayerScoreGraph from './components/PlayerScoreGraph';
 import ThrowInputRow from './components/ThrowInputRow';
+
+import Alert from './components/Alert';
 import styles from './App.module.css';
 
 const App: React.FC = () => {
@@ -14,6 +16,8 @@ const App: React.FC = () => {
     inputName,
     throwInputs,
     historyPlayer,
+    error,
+    round,
     addPlayer,
     startGame,
     handleThrowInput,
@@ -23,6 +27,7 @@ const App: React.FC = () => {
     setInputName,
     calculateThrowScore,
     calculateTotalScore,
+    clearError,
   } = useGameStore();
 
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -35,6 +40,12 @@ const App: React.FC = () => {
       throwInputRefs.current[0].focus();
     }
   }, [gameStarted, gameEnded, currentPlayerIndex]);
+
+  useEffect(() => {
+    if (error) {
+      setTimeout(() => clearError(), 3000); // Сбрасываем ошибку через 3 сек
+    }
+  }, [error, clearError]);
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && inputName.trim()) {
@@ -90,8 +101,9 @@ const App: React.FC = () => {
       {gameStarted && !gameEnded && (
         <div className={styles.game}>
           <h2 className={styles.currentPlayer}>
-            Сейчас кидает: {players[currentPlayerIndex]?.name || 'Никто, дебил!'}
+            Раунд {round} | Сейчас кидает: {players[currentPlayerIndex]?.name || 'Никто, дебил!'}
           </h2>
+          {error && <Alert message={error} onClose={clearError} />}
           <div className={styles.players}>
             {players.map((player, index) => (
               <div
@@ -121,7 +133,7 @@ const App: React.FC = () => {
                 key={rowIndex}
                 rowIndex={rowIndex}
                 score={row[0]}
-                modifier={row[1] || ''} // Прямо используем row[1] как Modifier
+                modifier={row[1] || ''}
                 onThrowInput={(index, score, modifier) =>
                   handleThrowInput(index, score, modifier)
                 }
