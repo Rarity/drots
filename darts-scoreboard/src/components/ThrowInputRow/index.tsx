@@ -36,6 +36,7 @@ const ThrowInputRow: React.FC<ThrowInputRowProps> = ({
 
   const handleScoreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value === '' ? undefined : Number(e.target.value);
+    if (value !== undefined && value < 0) return;
     updateThrow(value);
   };
 
@@ -44,12 +45,17 @@ const ThrowInputRow: React.FC<ThrowInputRowProps> = ({
     updateThrow(localScore, newModifier);
   };
 
+  const handleWheel = (e: React.WheelEvent<HTMLInputElement>) => {
+    e.currentTarget.blur();
+  };
+
   return (
     <div className={styles.throwRow}>
       <input
         type="number"
         value={localScore ?? ''}
         onChange={handleScoreChange}
+        onWheel={handleWheel}
         placeholder="Счет"
         className={styles.scoreInput}
       />

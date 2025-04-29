@@ -37,6 +37,12 @@
     gap: 1rem;
 }
 
+.inputWrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .input {
     padding: 0.75rem;
     background: #374151;
@@ -44,6 +50,7 @@
     color: white;
     border: none;
     font-size: 1rem;
+    flex: 1;
 }
 
 .input::placeholder {
@@ -53,6 +60,31 @@
 .input:focus {
     outline: none;
     box-shadow: 0 0 0 2px #facc15;
+}
+
+.addButton {
+    padding: 0.75rem;
+    background: #facc15;
+    color: #1f2937;
+    border-radius: 0.5rem;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 1rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.addButton:hover {
+    background: #eab308;
+}
+
+.addButton:disabled {
+    background: #4b5563;
+    cursor: not-allowed;
 }
 
 .playerList {
@@ -132,33 +164,6 @@
     border-radius: 0.5rem;
 }
 
-.throwInputs {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr) auto;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-.throwInput {
-    padding: 0.5rem;
-    background: #4b5563;
-    border-radius: 0.5rem;
-    color: white;
-    border: none;
-    text-align: center;
-}
-
-.throwInput:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px #facc15;
-}
-
-.throwScore {
-    display: flex;
-    align-items: center;
-    font-weight: bold;
-}
-
 .totalScore {
     font-size: 1.25rem;
     font-weight: bold;
@@ -215,12 +220,4 @@
     font-weight: bold;
     margin-bottom: 1.5rem;
     color: #facc15;
-}
-
-.history {
-    margin-bottom: 2rem;
-}
-
-.graph {
-    margin-bottom: 2rem;
 }

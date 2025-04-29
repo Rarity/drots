@@ -4,9 +4,7 @@ import PlayerHistory from './components/PlayerHistory';
 import PlayerScoreGraph from './components/PlayerScoreGraph';
 import ThrowInputRow from './components/ThrowInputRow';
 import Alert from './components/Alert';
-
 import { getMedal } from './utils';
-
 import styles from './App.module.css';
 
 const App: React.FC = () => {
@@ -49,19 +47,11 @@ const App: React.FC = () => {
     }
   };
 
-  // const getMedal = (place?: number): string => {
-  //   if (!place) return '';
-  //   switch (place) {
-  //     case 1:
-  //       return '🥇';
-  //     case 2:
-  //       return '🥈';
-  //     case 3:
-  //       return '🥉';
-  //     default:
-  //       return '🎀';
-  //   }
-  // };
+  const handleAddPlayer = () => {
+    if (inputName.trim()) {
+      addPlayer(inputName);
+    }
+  };
 
   const calculatePlayerTotalScore = (throws: number[]) => {
     return throws.reduce((sum, score) => sum + score, 0);
@@ -73,15 +63,24 @@ const App: React.FC = () => {
 
       {!gameStarted && !gameEnded && (
         <div className={styles.setup}>
-          <input
-            ref={nameInputRef}
-            type="text"
-            value={inputName || ''}
-            onChange={(e) => setInputName(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Имя игрока, дебил"
-            className={styles.input}
-          />
+          <div className={styles.inputWrapper}>
+            <input
+              ref={nameInputRef}
+              type="text"
+              value={inputName || ''}
+              onChange={(e) => setInputName(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Имя игрока, дебил"
+              className={styles.input}
+            />
+            <button
+              onClick={handleAddPlayer}
+              className={styles.addButton}
+              disabled={!inputName.trim()}
+            >
+              ➕
+            </button>
+          </div>
           <div className={styles.playerList}>
             {players.map((player, index) => (
               <div key={player.name + index} className={styles.playerTag}>
