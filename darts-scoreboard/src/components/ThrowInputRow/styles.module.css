@@ -1,0 +1,56 @@
+.throwRow {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: #f7fafc;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 16px;
+  }
+  
+  .scoreInput {
+    width: 100px;
+    padding: 8px;
+    font-size: 1rem;
+    border: 1px solid #d2d6dc;
+    border-radius: 5px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  
+  .scoreInput:focus {
+    border-color: #3182ce;
+    box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.2);
+  }
+  
+  .modifierGroup {
+    display: flex;
+    gap: 12px;
+  }
+  
+  .modifierLabel {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+  }
+  
+  .modifierCheckbox {
+    width: 18px;
+    height: 18px;
+    accent-color: #3182ce;
+    cursor: pointer;
+  }
+  
+  .modifierText {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #2d3748;
+  }
+  
+  .throwScore {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2d3748;
+  }

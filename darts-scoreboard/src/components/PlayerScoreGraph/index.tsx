@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import styles from './App.module.css';
+import React, { useEffect, useRef } from "react";
+import styles from "./styles.module.css";
 
 interface PlayerScoreGraphProps {
   throws: number[];
@@ -12,7 +12,7 @@ const PlayerScoreGraph: React.FC<PlayerScoreGraphProps> = ({ throws }) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const width = canvas.width;
@@ -22,41 +22,37 @@ const PlayerScoreGraph: React.FC<PlayerScoreGraphProps> = ({ throws }) => {
     const barWidth = (width - padding * 2) / Math.max(throws.length, 1) - 10;
 
     ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = '#374151';
+    ctx.fillStyle = "#374151";
     ctx.fillRect(0, 0, width, height);
 
-    ctx.strokeStyle = '#facc15';
+    ctx.strokeStyle = "#facc15";
     ctx.beginPath();
     ctx.moveTo(padding, padding);
     ctx.lineTo(padding, height - padding);
     ctx.lineTo(width - padding, height - padding);
     ctx.stroke();
 
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Раунд', width / 2, height - padding + 20);
-    ctx.textAlign = 'right';
-    ctx.fillText('Очки', padding - 10, padding + 10);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "12px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Раунд", width / 2, height - padding + 20);
+    ctx.textAlign = "right";
+    ctx.fillText("Очки", padding - 10, padding + 10);
 
     throws.forEach((score, index) => {
       const x = padding + index * (barWidth + 10);
-      const barHeight = ((score / maxScore) * (height - padding * 2)) || 0;
-      ctx.fillStyle = '#facc15';
+      const barHeight = (score / maxScore) * (height - padding * 2) || 0;
+      ctx.fillStyle = "#facc15";
       ctx.fillRect(x, height - padding - barHeight, barWidth, barHeight);
 
-      ctx.fillStyle = '#ffffff';
-      ctx.textAlign = 'center';
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "center";
       ctx.fillText(`${index + 1}`, x + barWidth / 2, height - padding + 15);
     });
 
     for (let i = 0; i <= 5; i++) {
       const y = height - padding - (i / 5) * (height - padding * 2);
-      ctx.fillText(
-        `${Math.round((i / 5) * maxScore)}`,
-        padding - 10,
-        y + 5
-      );
+      ctx.fillText(`${Math.round((i / 5) * maxScore)}`, padding - 10, y + 5);
     }
   }, [throws]);
 
