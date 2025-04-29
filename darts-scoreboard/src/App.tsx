@@ -61,38 +61,47 @@ const App: React.FC = () => {
     <div className={styles.container}>
       <h1 className={styles.title}>Берись за дрот! 🎯</h1>
 
-      {!gameStarted && !gameEnded && (
-        <div className={styles.setup}>
-          <div className={styles.inputWrapper}>
-            <input
-              ref={nameInputRef}
-              type="text"
-              value={inputName || ''}
-              onChange={(e) => setInputName(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Имя игрока, дебил"
-              className={styles.input}
-            />
-            <button
-              onClick={handleAddPlayer}
-              className={styles.addButton}
-              disabled={!inputName.trim()}
-            >
-              ➕
-            </button>
-          </div>
-          <div className={styles.playerList}>
-            {players.map((player, index) => (
-              <div key={player.name + index} className={styles.playerTag}>
-                {player.name}
-              </div>
-            ))}
-          </div>
-          <button onClick={startGame} className={styles.button}>
-            Начать игру, лохи!
+      <div className={styles.setup}>
+        <div className={styles.inputWrapper}>
+          <input
+            ref={nameInputRef}
+            type="text"
+            value={inputName || ''}
+            onChange={(e) => setInputName(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Имя игрока, дебил"
+            className={styles.input}
+          />
+          <button
+            onClick={handleAddPlayer}
+            className={styles.addButton}
+            disabled={!inputName.trim()}
+          >
+            ➕
           </button>
         </div>
-      )}
+        <div className={styles.playerList}>
+          {players.map((player, index) => (
+            <div key={player.name + index} className={styles.playerTag}>
+              {player.name}
+            </div>
+          ))}
+        </div>
+        {!gameStarted && (
+          <div className={styles.setupActions}>
+            <button
+              onClick={startGame}
+              className={styles.button}
+              disabled={players.length === 0}
+            >
+              Начать игру, лохи!
+            </button>
+          </div>
+        )}
+        <div className={styles.setupOptions}>
+          {/* Место для будущих опций */}
+        </div>
+      </div>
 
       {gameStarted && !gameEnded && (
         <div className={styles.game}>
@@ -100,48 +109,52 @@ const App: React.FC = () => {
             Раунд {round} | Сейчас кидает: {players[currentPlayerIndex]?.name || 'Никто, дебил!'}
           </h2>
           {error && <Alert message={error} onClose={clearError} />}
-          <div className={styles.players}>
-            {players.map((player, index) => (
-              <div
-                key={player.name + index}
-                className={`${styles.player} ${
-                  index === currentPlayerIndex ? styles.activePlayer : ''
-                }`}
-              >
-                <h3 className={styles.playerName}>
-                  {player.name} {player.place && getMedal(player.place)}
-                </h3>
-                <p>Осталось: {player.score}</p>
-                <p>Набрано: {calculatePlayerTotalScore(player.throws)}</p>
-                <button
-                  onClick={() => setHistoryPlayer(player)}
-                  className={styles.historyButton}
+          <div className={styles.columns}>
+            <div className={styles.playersColumn}>
+              {players.map((player, index) => (
+                <div
+                  key={player.name + index}
+                  className={`${styles.player} ${
+                    index === currentPlayerIndex ? styles.activePlayer : ''
+                  }`}
                 >
-                  История
+                  <h3 className={styles.playerName}>
+                    {player.name} {player.place && getMedal(player.place)}
+                  </h3>
+                  <p>Осталось: {player.score}</p>
+                  <p>Набрано: {calculatePlayerTotalScore(player.throws)}</p>
+                  <button
+                    onClick={() => setHistoryPlayer(player)}
+                    className={styles.historyButton}
+                  >
+                    История
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className={styles.controlsColumn}>
+              <div className={styles.throwSection}>
+                <h3 className={styles.subtitle}>Броски</h3>
+                {throwInputs.map((row, rowIndex) => (
+                  <ThrowInputRow
+                    key={rowIndex}
+                    rowIndex={rowIndex}
+                    score={row[0]}
+                    modifier={row[1] || ''}
+                    onThrowInput={(index, score, modifier) =>
+                      handleThrowInput(index, score, modifier)
+                    }
+                    calculateThrowScore={calculateThrowScore}
+                  />
+                ))}
+                <div className={styles.totalScore}>
+                  Итого: {calculateTotalScore()}
+                </div>
+                <button onClick={submitThrows} className={styles.button}>
+                  Зачесть, дебил!
                 </button>
               </div>
-            ))}
-          </div>
-          <div className={styles.throwSection}>
-            <h3 className={styles.subtitle}>Броски</h3>
-            {throwInputs.map((row, rowIndex) => (
-              <ThrowInputRow
-                key={rowIndex}
-                rowIndex={rowIndex}
-                score={row[0]}
-                modifier={row[1] || ''}
-                onThrowInput={(index, score, modifier) =>
-                  handleThrowInput(index, score, modifier)
-                }
-                calculateThrowScore={calculateThrowScore}
-              />
-            ))}
-            <div className={styles.totalScore}>
-              Итого: {calculateTotalScore()}
             </div>
-            <button onClick={submitThrows} className={styles.button}>
-              Зачесть, дебил!
-            </button>
           </div>
         </div>
       )}
