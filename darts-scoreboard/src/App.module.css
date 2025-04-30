@@ -104,7 +104,9 @@
     justify-content: center;
 }
 
+/* todo */
 .setupOptions {
+    padding:0;
     /* Место для будущих опций */
 }
 
