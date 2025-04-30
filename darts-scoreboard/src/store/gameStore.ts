@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Modifier } from '../constants';
+import { fetchInsultMessage, Vibe } from '../api/neuroApi';
 
 interface Player {
   name: string;
@@ -22,6 +23,8 @@ interface GameState {
   error: string | null;
   round: number;
   useNeuralCommentator: boolean;
+  vibe: Vibe;
+  initialScore: 301 | 501;
   addPlayer: (name: string) => void;
   startGame: () => void;
   handleThrowInput: (rowIndex: number, score: number | undefined, modifier: Modifier) => void;
@@ -33,37 +36,11 @@ interface GameState {
   calculateTotalScore: () => number;
   clearError: () => void;
   setUseNeuralCommentator: (value: boolean) => void;
+  setVibe: (vibe: Vibe) => void;
+  setInitialScore: (score: 301 | 501) => void;
 }
 
-const INITIAL_SCORE = 501;
 const THROW_COUNT = 3;
-
-const fetchInsultMessage = async (score: number): Promise<string> => {
-  try {
-    const prompt = `Ты злой, хамский комментатор на дартсе. Игрок набрал ${score} очков (макс. 180). 
-    - <30: гноби, унижай, матерись.
-    - 30-50: язви, но с матом.
-    - 50-160: грубо хвали, с сарказмом.
-    - >160: ори, будто он бог.
-    Коротко, до 60 символов, мат без цензуры. /no_think`;
-    const response = await fetch('http://localhost:11434/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'qwen3:8b',
-        prompt,
-        max_tokens: 60,
-        temperature: 0.7,
-        stream: false,
-      }),
-    });
-    const data = await response.json();
-    return data.response?.replace(/<think>|<\/think>/g, "")?.trim() || 'Блять, нейронка сдохла, но ты лох!';
-  } catch (error) {
-    console.error('Ошибка API:', error);
-    return 'Блять, нейронка сдохла, но ты всё равно лох!';
-  }
-};
 
 export const useGameStore = create<GameState>((set, get) => ({
   players: [],
@@ -76,10 +53,12 @@ export const useGameStore = create<GameState>((set, get) => ({
   error: null,
   round: 1,
   useNeuralCommentator: true,
+  vibe: 'angry',
+  initialScore: 501,
 
   addPlayer: (name) =>
     set((state) => ({
-      players: [...state.players, { name, score: INITIAL_SCORE, throws: [] }],
+      players: [...state.players, { name, score: state.initialScore, throws: [] }],
       inputName: '',
     })),
 
@@ -120,7 +99,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       isBust,
     };
 
-    // Раздача мест
     let nextPlace = 1;
     const usedPlaces = newPlayers
       .filter((p) => p.place !== undefined)
@@ -160,7 +138,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
 
     if (state.useNeuralCommentator && totalScore > 0) {
-      fetchInsultMessage(totalScore).then((message) => {
+      fetchInsultMessage(totalScore, state.vibe).then((message) => {
         set((prev) => {
           const updatedPlayers = [...prev.players];
           updatedPlayers[state.currentPlayerIndex] = {
@@ -185,6 +163,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       error: null,
       round: 1,
       useNeuralCommentator: false,
+      vibe: 'angry',
+      initialScore: 501,
     }),
 
   setHistoryPlayer: (player) => set({ historyPlayer: player }),
@@ -222,4 +202,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       console.log('setUseNeuralCommentator:', value);
       return { useNeuralCommentator: value };
     }),
+
+  setVibe: (vibe) => set({ vibe }),
+
+  setInitialScore: (score) => set({ initialScore: score }),
 }));

@@ -19,6 +19,8 @@ const App: React.FC = () => {
     error,
     round,
     useNeuralCommentator,
+    vibe,
+    initialScore,
     addPlayer,
     startGame,
     handleThrowInput,
@@ -30,6 +32,8 @@ const App: React.FC = () => {
     calculateTotalScore,
     clearError,
     setUseNeuralCommentator,
+    setVibe,
+    setInitialScore,
   } = useGameStore();
 
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -42,6 +46,10 @@ const App: React.FC = () => {
       throwInputRefs.current[0].focus();
     }
   }, [gameStarted, gameEnded, currentPlayerIndex]);
+
+  useEffect(() => {
+    console.log('useNeuralCommentator in UI:', useNeuralCommentator);
+  }, [useNeuralCommentator]);
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && inputName.trim()) {
@@ -99,6 +107,40 @@ const App: React.FC = () => {
               />
               Включить нейросетевого комментатора
             </label>
+            <label className={styles.selectLabel}>
+              Вайб комментатора:
+              <select
+                value={vibe}
+                onChange={(e) => setVibe(e.target.value as 'angry' | 'friendly' | 'pity')}
+                className={styles.select}
+              >
+                <option value="angry">🤬</option>
+                <option value="friendly">😇</option>
+                <option value="pity">🥺</option>
+              </select>
+            </label>
+            <div className={styles.radioGroup}>
+              <label className={styles.radioLabel}>
+                <input
+                  type="radio"
+                  name="initialScore"
+                  value={301}
+                  checked={initialScore === 301}
+                  onChange={() => setInitialScore(301)}
+                />
+                301 очков
+              </label>
+              <label className={styles.radioLabel}>
+                <input
+                  type="radio"
+                  name="initialScore"
+                  value={501}
+                  checked={initialScore === 501}
+                  onChange={() => setInitialScore(501)}
+                />
+                501 очков
+              </label>
+            </div>
           </div>
           <button
             onClick={startGame}
