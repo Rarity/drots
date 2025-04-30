@@ -18,6 +18,7 @@ const App: React.FC = () => {
     historyPlayer,
     error,
     round,
+    useNeuralCommentator,
     addPlayer,
     startGame,
     handleThrowInput,
@@ -28,6 +29,7 @@ const App: React.FC = () => {
     calculateThrowScore,
     calculateTotalScore,
     clearError,
+    setUseNeuralCommentator,
   } = useGameStore();
 
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -88,6 +90,16 @@ const App: React.FC = () => {
               </div>
             ))}
           </div>
+          <div className={styles.setupOptions}>
+            <label className={styles.checkboxLabel}>
+              <input
+                type="checkbox"
+                checked={useNeuralCommentator}
+                onChange={(e) => setUseNeuralCommentator(e.target.checked)}
+              />
+              Включить нейросетевого комментатора
+            </label>
+          </div>
           <button
             onClick={startGame}
             className={styles.button}
@@ -95,9 +107,6 @@ const App: React.FC = () => {
           >
             Начать игру, лохи!
           </button>
-          <div className={styles.setupOptions}>
-            {/* Место для будущих опций */}
-          </div>
         </div>
       )}
 
@@ -119,8 +128,25 @@ const App: React.FC = () => {
                   <h3 className={styles.playerName}>
                     {player.name} {player.place && getMedal(player.place)}
                   </h3>
-                  <p>Осталось: {player.score}</p>
-                  <p>Набрано: {calculatePlayerTotalScore(player.throws)}</p>
+                  <div className={styles.playerColumns}>
+                    <div className={styles.playerLeft}>
+                      <p>Осталось: {player.score}</p>
+                      <p>Набрано: {calculatePlayerTotalScore(player.throws)}</p>
+                    </div>
+                    <div className={styles.playerRight}>
+                      {player.lastThrow !== undefined && (
+                        <p
+                          className={
+                            player.lastThrow > player.score ? styles.bust : styles.lastThrow
+                          }
+                        >
+                          Последний: {player.lastThrow}
+                          {player.lastThrow > player.score ? ' - ПЕРЕБОР!' : ''}
+                        </p>
+                      )}
+                      {player.message && <p className={styles.message}>{player.message}</p>}
+                    </div>
+                  </div>
                   <button
                     onClick={() => setHistoryPlayer(player)}
                     className={styles.historyButton}

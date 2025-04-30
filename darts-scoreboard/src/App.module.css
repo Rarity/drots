@@ -99,15 +99,18 @@
     border-radius: 0.5rem;
 }
 
-.setupActions {
+.setupOptions {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
-/* todo */
-.setupOptions {
-    padding:0;
-    /* Место для будущих опций */
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #ffffff;
+    font-size: 1rem;
 }
 
 .button {
@@ -185,6 +188,38 @@
 .playerName {
     font-size: 1.25rem;
     font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.playerColumns {
+    display: flex;
+    gap: 1rem;
+}
+
+.playerLeft {
+    flex: 1;
+}
+
+.playerRight {
+    flex: 1;
+}
+
+.lastThrow {
+    font-size: 1rem;
+    color: #ffffff;
+}
+
+.bust {
+    font-size: 1rem;
+    color: #ef4444;
+    font-weight: bold;
+}
+
+.message {
+    font-size: 0.9rem;
+    color: #ffffff;
+    font-style: italic;
+    margin-top: 0.5rem;
 }
 
 .throwSection {
