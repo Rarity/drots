@@ -135,13 +135,9 @@ const App: React.FC = () => {
                     </div>
                     <div className={styles.playerRight}>
                       {player.lastThrow !== undefined && (
-                        <p
-                          className={
-                            player.lastThrow > player.score ? styles.bust : styles.lastThrow
-                          }
-                        >
+                        <p className={player.isBust ? styles.bust : styles.lastThrow}>
                           Последний: {player.lastThrow}
-                          {player.lastThrow > player.score ? ' - ПЕРЕБОР!' : ''}
+                          {player.isBust ? ' - ПЕРЕБОР!' : ''}
                         </p>
                       )}
                       {player.message && <p className={styles.message}>{player.message}</p>}
