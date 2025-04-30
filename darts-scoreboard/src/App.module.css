@@ -113,6 +113,41 @@
     font-size: 1rem;
 }
 
+.selectLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #ffffff;
+    font-size: 1rem;
+}
+
+.select {
+    padding: 0.5rem;
+    background: #374151;
+    border-radius: 0.5rem;
+    color: white;
+    border: none;
+    font-size: 1rem;
+}
+
+.select:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #facc15;
+}
+
+.radioGroup {
+    display: flex;
+    gap: 1rem;
+}
+
+.radioLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #ffffff;
+    font-size: 1rem;
+}
+
 .button {
     padding: 0.75rem;
     background: #facc15;
