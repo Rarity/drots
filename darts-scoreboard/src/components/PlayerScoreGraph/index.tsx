@@ -1,65 +1,94 @@
-import React, { useEffect, useRef } from "react";
-import styles from "./styles.module.css";
+import React, { useEffect, useRef } from 'react';
+import Chart from 'chart.js/auto';
+import styles from './styles.module.css';
 
 interface PlayerScoreGraphProps {
-  throws: number[];
+  throws: number[] | Record<string, number[]>;
+  isMultiPlayer?: boolean;
 }
 
-const PlayerScoreGraph: React.FC<PlayerScoreGraphProps> = ({ throws }) => {
+const PlayerScoreGraph: React.FC<PlayerScoreGraphProps> = ({ throws, isMultiPlayer = false }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const chartRef = useRef<Chart | null>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvasRef.current) return;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvasRef.current.getContext('2d');
     if (!ctx) return;
 
-    const width = canvas.width;
-    const height = canvas.height;
-    const padding = 40;
-    const maxScore = Math.max(...throws, 180) || 180;
-    const barWidth = (width - padding * 2) / Math.max(throws.length, 1) - 10;
+    if (chartRef.current) {
+      chartRef.current.destroy();
+    }
 
-    ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = "#374151";
-    ctx.fillRect(0, 0, width, height);
+    const colors = ['#facc15', '#ef4444', '#10b981', '#3b82f6', '#8b5cf6'];
+    let datasets: any[];
+    let labels: string[];
 
-    ctx.strokeStyle = "#facc15";
-    ctx.beginPath();
-    ctx.moveTo(padding, padding);
-    ctx.lineTo(padding, height - padding);
-    ctx.lineTo(width - padding, height - padding);
-    ctx.stroke();
+    if (isMultiPlayer) {
+      const playersThrows = throws as Record<string, number[]>;
+      const maxThrows = Math.max(...Object.values(playersThrows).map(t => t.length));
+      labels = Array.from({ length: maxThrows }, (_, i) => `Бросок ${i + 1}`);
+      datasets = Object.entries(playersThrows).map(([name, throws], index) => ({
+        label: name,
+        data: throws,
+        borderColor: colors[index % colors.length],
+        backgroundColor: colors[index % colors.length] + '33',
+        fill: false,
+        tension: 0.1,
+      }));
+    } else {
+      const singleThrows = throws as number[];
+      labels = singleThrows.map((_, index) => `Бросок ${index + 1}`);
+      datasets = [{
+        label: 'Очки',
+        data: singleThrows,
+        borderColor: '#facc15',
+        backgroundColor: '#facc1533',
+        fill: false,
+        tension: 0.1,
+      }];
+    }
 
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "12px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("Раунд", width / 2, height - padding + 20);
-    ctx.textAlign = "right";
-    ctx.fillText("Очки", padding - 10, padding + 10);
-
-    throws.forEach((score, index) => {
-      const x = padding + index * (barWidth + 10);
-      const barHeight = (score / maxScore) * (height - padding * 2) || 0;
-      ctx.fillStyle = "#facc15";
-      ctx.fillRect(x, height - padding - barHeight, barWidth, barHeight);
-
-      ctx.fillStyle = "#ffffff";
-      ctx.textAlign = "center";
-      ctx.fillText(`${index + 1}`, x + barWidth / 2, height - padding + 15);
+    chartRef.current = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets,
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: 'Очки', color: '#ffffff' },
+            ticks: { color: '#ffffff' },
+            grid: { color: '#4b5563' },
+          },
+          x: {
+            title: { display: true, text: 'Броски', color: '#ffffff' },
+            ticks: { color: '#ffffff' },
+            grid: { color: '#4b5563' },
+          },
+        },
+        plugins: {
+          legend: { labels: { color: '#ffffff' } },
+          tooltip: { backgroundColor: '#374151', titleColor: '#ffffff', bodyColor: '#ffffff' },
+        },
+      },
     });
 
-    for (let i = 0; i <= 5; i++) {
-      const y = height - padding - (i / 5) * (height - padding * 2);
-      ctx.fillText(`${Math.round((i / 5) * maxScore)}`, padding - 10, y + 5);
-    }
-  }, [throws]);
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.destroy();
+      }
+    };
+  }, [throws, isMultiPlayer]);
 
   return (
-    <div className={styles.graph}>
-      <h4 className={styles.subtitle}>График очков</h4>
-      <canvas ref={canvasRef} width={400} height={200} />
+    <div className={styles.graphContainer}>
+      <canvas ref={canvasRef} />
     </div>
   );
 };

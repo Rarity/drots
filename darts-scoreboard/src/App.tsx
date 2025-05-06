@@ -18,6 +18,9 @@ const App: React.FC = () => {
     historyPlayer,
     error,
     round,
+    useNeuralCommentator,
+    vibe,
+    initialScore,
     addPlayer,
     startGame,
     handleThrowInput,
@@ -28,6 +31,9 @@ const App: React.FC = () => {
     calculateThrowScore,
     calculateTotalScore,
     clearError,
+    setUseNeuralCommentator,
+    setVibe,
+    setInitialScore,
   } = useGameStore();
 
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -40,6 +46,10 @@ const App: React.FC = () => {
       throwInputRefs.current[0].focus();
     }
   }, [gameStarted, gameEnded, currentPlayerIndex]);
+
+  useEffect(() => {
+    console.log('useNeuralCommentator in UI:', useNeuralCommentator);
+  }, [useNeuralCommentator]);
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && inputName.trim()) {
@@ -88,6 +98,50 @@ const App: React.FC = () => {
               </div>
             ))}
           </div>
+          <div className={styles.setupOptions}>
+            <label className={styles.checkboxLabel}>
+              <input
+                type="checkbox"
+                checked={useNeuralCommentator}
+                onChange={(e) => setUseNeuralCommentator(e.target.checked)}
+              />
+              Включить нейросетевого комментатора
+            </label>
+            <label className={styles.selectLabel}>
+              Вайб комментатора:
+              <select
+                value={vibe}
+                onChange={(e) => setVibe(e.target.value as 'angry' | 'friendly' | 'pity')}
+                className={styles.select}
+              >
+                <option value="angry">🤬 Агрессивный</option>
+                <option value="friendly">😇 Дружелюбный</option>
+                <option value="pity">🥺 Жалостливый</option>
+              </select>
+            </label>
+            <div className={styles.radioGroup}>
+              <label className={styles.radioLabel}>
+                <input
+                  type="radio"
+                  name="initialScore"
+                  value={301}
+                  checked={initialScore === 301}
+                  onChange={() => setInitialScore(301)}
+                />
+                301 очков
+              </label>
+              <label className={styles.radioLabel}>
+                <input
+                  type="radio"
+                  name="initialScore"
+                  value={501}
+                  checked={initialScore === 501}
+                  onChange={() => setInitialScore(501)}
+                />
+                501 очков
+              </label>
+            </div>
+          </div>
           <button
             onClick={startGame}
             className={styles.button}
@@ -95,9 +149,6 @@ const App: React.FC = () => {
           >
             Начать игру, лохи!
           </button>
-          <div className={styles.setupOptions}>
-            {/* Место для будущих опций */}
-          </div>
         </div>
       )}
 
@@ -119,8 +170,21 @@ const App: React.FC = () => {
                   <h3 className={styles.playerName}>
                     {player.name} {player.place && getMedal(player.place)}
                   </h3>
-                  <p>Осталось: {player.score}</p>
-                  <p>Набрано: {calculatePlayerTotalScore(player.throws)}</p>
+                  <div className={styles.playerColumns}>
+                    <div className={styles.playerLeft}>
+                      <p>Осталось: {player.score}</p>
+                      <p>Набрано: {calculatePlayerTotalScore(player.throws)}</p>
+                    </div>
+                    <div className={styles.playerRight}>
+                      {player.lastThrow !== undefined && (
+                        <p className={player.isBust ? styles.bust : styles.lastThrow}>
+                          Последний: {player.lastThrow}
+                          {player.isBust ? ' - ПЕРЕБОР!' : ''}
+                        </p>
+                      )}
+                      {player.message && <p className={styles.message}>{player.message}</p>}
+                    </div>
+                  </div>
                   <button
                     onClick={() => setHistoryPlayer(player)}
                     className={styles.historyButton}
@@ -180,6 +244,16 @@ const App: React.FC = () => {
                 ))}
             </tbody>
           </table>
+          <div className={styles.resultsGraph}>
+            <h3 className={styles.subtitle}>Прогресс игроков</h3>
+            <PlayerScoreGraph
+              throws={players.reduce((acc, player) => ({
+                ...acc,
+                [player.name]: player.throws
+              }), {} as Record<string, number[]>)}
+              isMultiPlayer
+            />
+          </div>
           <button onClick={resetGame} className={styles.button}>
             Новая игра, дебилы!
           </button>
