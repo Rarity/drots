@@ -114,9 +114,9 @@ const App: React.FC = () => {
                 onChange={(e) => setVibe(e.target.value as 'angry' | 'friendly' | 'pity')}
                 className={styles.select}
               >
-                <option value="angry">🤬</option>
-                <option value="friendly">😇</option>
-                <option value="pity">🥺</option>
+                <option value="angry">🤬 Агрессивный</option>
+                <option value="friendly">😇 Дружелюбный</option>
+                <option value="pity">🥺 Жалостливый</option>
               </select>
             </label>
             <div className={styles.radioGroup}>
@@ -244,6 +244,16 @@ const App: React.FC = () => {
                 ))}
             </tbody>
           </table>
+          <div className={styles.resultsGraph}>
+            <h3 className={styles.subtitle}>Прогресс игроков</h3>
+            <PlayerScoreGraph
+              throws={players.reduce((acc, player) => ({
+                ...acc,
+                [player.name]: player.throws
+              }), {} as Record<string, number[]>)}
+              isMultiPlayer
+            />
+          </div>
           <button onClick={resetGame} className={styles.button}>
             Новая игра, дебилы!
           </button>
