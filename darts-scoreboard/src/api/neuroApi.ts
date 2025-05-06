@@ -1,11 +1,22 @@
 export type Vibe = 'angry' | 'friendly' | 'pity';
 
-export const fetchInsultMessage = async (score: number, vibe: Vibe): Promise<string> => {
+interface GameState {
+  totalScore: number,
+  player: string,
+  isBust: boolean,
+  newScore: number,
+}
+
+
+export const fetchInsultMessage = async (gameState: GameState, vibe: Vibe): Promise<string> => {
   try {
     let prompt: string;
+    if (gameState.isBust) {
+      prompt = `Ты злой, хамский комментатор на дартсе, игрок по имени ${gameState.player} кинул больше чем надо и пропускает ход. Дай комментарий этого момента`
+    }
     switch (vibe) {
       case 'angry':
-        prompt = `Ты злой, хамский комментатор на дартсе. Игрок набрал ${score} очков (макс. 180). 
+        prompt = `Ты злой, хамский комментатор на дартсе. Игрок набрал по имени ${gameState.player} набрал ${gameState.totalScore} очков (макс. можно набрать за попытку 180).  Ему осталось ${gameState.newScore} очков
         - <30: гноби, унижай, матерись.
         - 30-50: язви, но с матом.
         - 50-160: грубо хвали, с сарказмом.
@@ -13,7 +24,7 @@ export const fetchInsultMessage = async (score: number, vibe: Vibe): Promise<str
         Коротко, до 60 символов, мат без цензуры. /no_think`;
         break;
       case 'friendly':
-        prompt = `Ты дружелюбный комментатор на дартсе. Игрок набрал ${score} очков (макс. 180).
+        prompt = `Ты дружелюбный комментатор на дартсе. Игрок набрал по имени ${gameState.player} набрал ${gameState.totalScore} очков (макс. можно набрать за попытку 180). Ему осталось ${gameState.newScore} очков
         - <30: мягко подбодри, без мата.
         - 30-50: похвали за усилие.
         - 50-160: хвали с энтузиазмом.
@@ -21,7 +32,7 @@ export const fetchInsultMessage = async (score: number, vibe: Vibe): Promise<str
         Коротко, до 60 символов. /no_think`;
         break;
       case 'pity':
-        prompt = `Ты жалостливый комментатор на дартсе. Игрок набрал ${score} очков (макс. 180).
+        prompt = `Ты жалостливый комментатор на дартсе. Игрок набрал по имени ${gameState.player} набрал ${gameState.totalScore} очков (макс. можно набрать за попытку 180). Ему осталось ${gameState.newScore} очков
         - <30: пожалей, успокой.
         - 30-50: посочувствуй, но подбодри.
         - 50-160: похвали с сочувствием.

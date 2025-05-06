@@ -137,8 +137,13 @@ export const useGameStore = create<GameState>((set, get) => ({
         : state.round,
     });
 
-    if (state.useNeuralCommentator && totalScore > 0) {
-      fetchInsultMessage(totalScore, state.vibe).then((message) => {
+    if (state.useNeuralCommentator) {
+      fetchInsultMessage({
+        totalScore,
+        player: currentPlayer.name,
+        isBust,
+        newScore,
+      }, state.vibe).then((message) => {
         set((prev) => {
           const updatedPlayers = [...prev.players];
           updatedPlayers[state.currentPlayerIndex] = {
