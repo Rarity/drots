@@ -1,11 +1,16 @@
 import { create } from 'zustand';
 import { Modifier } from '../constants';
+import { fetchInsultMessage, Vibe } from '../api/neuroApi';
+import { speakText } from '../utils/speakText';
 
 interface Player {
   name: string;
   score: number;
   throws: number[];
   place?: number;
+  lastThrow?: number;
+  message?: string;
+  isBust?: boolean;
 }
 
 interface GameState {
@@ -18,7 +23,11 @@ interface GameState {
   historyPlayer: Player | null;
   error: string | null;
   round: number;
+  useNeuralCommentator: boolean;
+  vibe: Vibe;
+  initialScore: 301 | 501;
   addPlayer: (name: string) => void;
+  removePlayer: (index: number) => void;
   startGame: () => void;
   handleThrowInput: (rowIndex: number, score: number | undefined, modifier: Modifier) => void;
   submitThrows: () => void;
@@ -28,7 +37,13 @@ interface GameState {
   calculateThrowScore: (rowIndex: number) => number;
   calculateTotalScore: () => number;
   clearError: () => void;
+  setUseNeuralCommentator: (value: boolean) => void;
+  setVibe: (vibe: Vibe) => void;
+  setInitialScore: (score: 301 | 501) => void;
+  shufflePlayers: () => void;
 }
+
+const THROW_COUNT = 3;
 
 export const useGameStore = create<GameState>((set, get) => ({
   players: [],
@@ -36,24 +51,48 @@ export const useGameStore = create<GameState>((set, get) => ({
   gameStarted: false,
   gameEnded: false,
   inputName: '',
-  throwInputs: [[undefined, ''], [undefined, ''], [undefined, '']],
+  throwInputs: Array(THROW_COUNT).fill([undefined, ''] as [number | undefined, Modifier]),
   historyPlayer: null,
   error: null,
   round: 1,
+  useNeuralCommentator: true,
+  vibe: 'angry',
+  initialScore: 501,
 
   addPlayer: (name) =>
-    set((state) => ({
-      players: [...state.players, { name, score: 501, throws: [], place: undefined }],
-      inputName: '',
-    })),
+    set((state) => {
+      if (!name.trim()) {
+        return { error: 'Имя не может быть пустым, дебил!' };
+      }
+      if (state.players.some((p) => p.name === name)) {
+        return { error: 'Игрок с таким именем уже есть, дебил!' };
+      }
+      return {
+        players: [...state.players, { name, score: state.initialScore, throws: [] }],
+        inputName: '',
+        error: null,
+      };
+    }),
+
+  removePlayer: (index) =>
+    set((state) => {
+      const newPlayers = [...state.players];
+      newPlayers.splice(index, 1);
+      return { players: newPlayers };
+    }),
 
   startGame: () =>
-    set((state) => ({
-      gameStarted: state.players.length > 0,
-      throwInputs: [[undefined, ''], [undefined, ''], [undefined, '']],
-      round: 1,
-      error: null,
-    })),
+    set((state) => {
+      if (state.players.length === 0) {
+        return { error: 'Добавь хотя бы одного игрока, дебил!' };
+      }
+      return {
+        gameStarted: true,
+        throwInputs: Array(THROW_COUNT).fill([undefined, ''] as [number | undefined, Modifier]),
+        round: 1,
+        error: null,
+      };
+    }),
 
   handleThrowInput: (rowIndex, score, modifier) =>
     set((state) => {
@@ -66,53 +105,77 @@ export const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     const totalScore = state.calculateTotalScore();
     const currentPlayer = state.players[state.currentPlayerIndex];
+    const isBust = totalScore > currentPlayer.score;
+    const newScore = isBust ? currentPlayer.score : currentPlayer.score - totalScore;
 
-    // Находим следующий активный индекс (скипаем игроков с score === 0)
-    let nextPlayerIndex = state.currentPlayerIndex;
-    let newRound = state.round;
-    do {
-      nextPlayerIndex = (nextPlayerIndex + 1) % state.players.length;
-      if (nextPlayerIndex === 0) newRound += 1;
-    } while (
-      state.players[nextPlayerIndex]?.score === 0 &&
-      nextPlayerIndex !== state.currentPlayerIndex
-    );
+    const newPlayers = [...state.players];
+    newPlayers[state.currentPlayerIndex] = {
+      ...currentPlayer,
+      score: newScore,
+      throws: isBust ? [...currentPlayer.throws] : [...currentPlayer.throws, totalScore],
+      lastThrow: totalScore,
+      message: undefined,
+      isBust,
+    };
 
-    if (totalScore > currentPlayer.score) {
-      set({
-        error: 'Переброс, дебил! Введи очки не больше, чем осталось!',
-        throwInputs: [[undefined, ''], [undefined, ''], [undefined, '']],
-        currentPlayerIndex: nextPlayerIndex,
-        round: newRound,
-      });
-      return;
+    let nextPlace = 1;
+    const usedPlaces = newPlayers
+      .filter((p) => p.place !== undefined)
+      .map((p) => p.place!)
+      .sort((a, b) => a - b);
+    while (usedPlaces.includes(nextPlace)) {
+      nextPlace++;
     }
+    newPlayers.forEach((player) => {
+      if (player.score === 0 && !player.place) {
+        player.place = nextPlace++;
+        while (usedPlaces.includes(nextPlace)) {
+          nextPlace++;
+        }
+      } else if (player.score > 0) {
+        player.place = undefined;
+      }
+    });
 
-    if (totalScore <= currentPlayer.score) {
-      set((state) => {
-        const newPlayers = [...state.players];
-        const newScore = currentPlayer.score - totalScore;
-        const isFinish = newScore === 0;
-        newPlayers[state.currentPlayerIndex] = {
-          ...currentPlayer,
-          score: newScore,
-          throws: [...currentPlayer.throws, totalScore],
-          place: isFinish
-            ? (state.players.filter((p) => p.place).length + 1)
-            : currentPlayer.place,
-        };
+    const allFinished = newPlayers.every((player) => player.score === 0);
+    const nextPlayerIndex = allFinished
+      ? state.currentPlayerIndex
+      : newPlayers.findIndex((p, i) => i > state.currentPlayerIndex && p.score > 0) !== -1
+      ? newPlayers.findIndex((p, i) => i > state.currentPlayerIndex && p.score > 0)
+      : newPlayers.findIndex((p) => p.score > 0);
 
-        // Проверяем, все ли игроки закончили (score === 0)
-        const allFinished = newPlayers.every((p) => p.score === 0);
+    set({
+      players: newPlayers,
+      currentPlayerIndex: nextPlayerIndex === -1 ? 0 : nextPlayerIndex,
+      throwInputs: Array(THROW_COUNT).fill([undefined, ''] as [number | undefined, Modifier]),
+      gameEnded: allFinished,
+      round: allFinished
+        ? state.round
+        : state.currentPlayerIndex > nextPlayerIndex && nextPlayerIndex !== -1
+        ? state.round + 1
+        : state.round,
+    });
 
-        return {
-          players: newPlayers,
-          throwInputs: [[undefined, ''], [undefined, ''], [undefined, '']],
-          currentPlayerIndex: nextPlayerIndex,
-          gameEnded: allFinished,
-          round: newRound,
-          error: null,
-        };
+    if (state.useNeuralCommentator) {
+      fetchInsultMessage({
+        totalScore,
+        player: currentPlayer.name,
+        isBust,
+        newScore,
+      }, state.vibe).then((message) => {
+        set((prev) => {
+          const updatedPlayers = [...prev.players];
+          updatedPlayers[state.currentPlayerIndex] = {
+            ...updatedPlayers[state.currentPlayerIndex],
+            message,
+          };
+          return { players: updatedPlayers };
+        });
+
+      speakText(message, 'Google русский'); // или без имени, тогда возьмёт дефолт
+
+      }).catch((e) => {
+        console.error("Ошибка нейрокомментатора, дебил!", e);
       });
     }
   },
@@ -124,10 +187,13 @@ export const useGameStore = create<GameState>((set, get) => ({
       gameStarted: false,
       gameEnded: false,
       inputName: '',
-      throwInputs: [[undefined, ''], [undefined, ''], [undefined, '']],
+      throwInputs: Array(THROW_COUNT).fill([undefined, ''] as [number | undefined, Modifier]),
       historyPlayer: null,
       error: null,
       round: 1,
+      useNeuralCommentator: false,
+      vibe: 'angry',
+      initialScore: 501,
     }),
 
   setHistoryPlayer: (player) => set({ historyPlayer: player }),
@@ -138,16 +204,17 @@ export const useGameStore = create<GameState>((set, get) => ({
     const throwInput = get().throwInputs[rowIndex];
     if (!throwInput) return 0;
     const [score, modifier] = throwInput;
-    if (!score) return 0;
+
+    if (modifier === '25') return 25;
+    if (modifier === '50') return 50;
+
+    if (typeof score !== 'number') return 0;
+
     switch (modifier) {
       case 'x2':
         return score * 2;
       case 'x3':
         return score * 3;
-      case '25':
-        return 25;
-      case '50':
-        return 50;
       default:
         return score;
     }
@@ -158,4 +225,18 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   clearError: () => set({ error: null }),
+
+  setUseNeuralCommentator: (value) =>
+    set(() => {
+      return { useNeuralCommentator: value };
+    }),
+
+  setVibe: (vibe) => set({ vibe }),
+
+  setInitialScore: (score) => set({ initialScore: score }),
+
+  shufflePlayers: () => set((state) => {
+    const shuffled = [...state.players].sort(() => Math.random() - 0.5);
+    return { players: shuffled };
+  }),
 }));
