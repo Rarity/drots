@@ -1,0 +1,69 @@
+.multiSelect {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #facc15;
+}
+
+.empty {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #374151;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.item:hover {
+  background: #4b5563;
+}
+
+.checkbox {
+  accent-color: #facc15;
+  width: 18px;
+  height: 18px;
+}
+
+.name {
+  flex: 1;
+  color: #ffffff;
+}
+
+.medals {
+  color: #facc15;
+  font-size: 0.9rem;
+}
+
+.addButton {
+  padding: 10px 16px;
+  background: #facc15;
+  color: #1f2937;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+
+.addButton:hover {
+  background: #eab308;
+}

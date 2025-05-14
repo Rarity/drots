@@ -1,8 +1,14 @@
 import React, { useRef, useEffect } from 'react';
+
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
 import { useGameStore } from './store/gameStore';
 import PlayerHistory from './components/PlayerHistory';
 import PlayerScoreGraph from './components/PlayerScoreGraph';
 import ThrowInputRow from './components/ThrowInputRow';
+// import SavedPlayersMultiSelect from "./components//SavedPlayersMultiSelect";
+
 import Alert from './components/Alert';
 import { getMedal } from './utils';
 import styles from './App.module.css';
@@ -22,6 +28,7 @@ const App: React.FC = () => {
     vibe,
     initialScore,
     addPlayer,
+    removePlayer,
     startGame,
     handleThrowInput,
     submitThrows,
@@ -34,6 +41,7 @@ const App: React.FC = () => {
     setUseNeuralCommentator,
     setVibe,
     setInitialScore,
+    shufflePlayers,
   } = useGameStore();
 
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -90,11 +98,30 @@ const App: React.FC = () => {
             >
               ➕
             </button>
+            {/* <SavedPlayersMultiSelect onAddPlayers={(names) => {
+              names.forEach(addPlayer);
+            }} /> */}
+            <div className={styles.shuffleWrapper}>
+              <button
+                onClick={shufflePlayers}
+                className={styles.shuffleButton}
+                disabled={players.length < 2}
+                title="Перемешать игроков"
+              >
+                🎲 Перемешать
+              </button>
+            </div>
           </div>
           <div className={styles.playerList}>
             {players.map((player, index) => (
               <div key={player.name + index} className={styles.playerTag}>
                 {player.name}
+                <button
+                  onClick={() => removePlayer(index)}
+                  className={styles.removeButton}
+                >
+                  x
+                </button>
               </div>
             ))}
           </div>
@@ -275,6 +302,7 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
+      <ToastContainer />
     </div>
   );
 };

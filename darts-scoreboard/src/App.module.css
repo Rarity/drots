@@ -327,3 +327,53 @@
     margin-bottom: 1.5rem;
     color: #facc15;
 }
+
+.removeButton {
+    background: transparent;
+    color: #facc15;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    margin-left: 15px;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  
+.removeButton:hover {
+    background: #dc2626;
+  }
+
+
+.shuffleWrapper {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.shuffleButton {
+  background-color: #222;
+  color: #fff;
+  font-size: 1rem;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.shuffleButton:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+}
+
+.shuffleButton:hover:not(:disabled) {
+  background-color: #444;
+}
+
+
+.shuffleWrapper {
+    margin-top: 10px;
+    text-align: center;
+}

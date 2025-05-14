@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Modifier } from '../constants';
 import { fetchInsultMessage, Vibe } from '../api/neuroApi';
+import { speakText } from '../utils/speakText';
 
 interface Player {
   name: string;
@@ -26,6 +27,7 @@ interface GameState {
   vibe: Vibe;
   initialScore: 301 | 501;
   addPlayer: (name: string) => void;
+  removePlayer: (index: number) => void;
   startGame: () => void;
   handleThrowInput: (rowIndex: number, score: number | undefined, modifier: Modifier) => void;
   submitThrows: () => void;
@@ -38,6 +40,7 @@ interface GameState {
   setUseNeuralCommentator: (value: boolean) => void;
   setVibe: (vibe: Vibe) => void;
   setInitialScore: (score: 301 | 501) => void;
+  shufflePlayers: () => void;
 }
 
 const THROW_COUNT = 3;
@@ -57,10 +60,26 @@ export const useGameStore = create<GameState>((set, get) => ({
   initialScore: 501,
 
   addPlayer: (name) =>
-    set((state) => ({
-      players: [...state.players, { name, score: state.initialScore, throws: [] }],
-      inputName: '',
-    })),
+    set((state) => {
+      if (!name.trim()) {
+        return { error: 'Имя не может быть пустым, дебил!' };
+      }
+      if (state.players.some((p) => p.name === name)) {
+        return { error: 'Игрок с таким именем уже есть, дебил!' };
+      }
+      return {
+        players: [...state.players, { name, score: state.initialScore, throws: [] }],
+        inputName: '',
+        error: null,
+      };
+    }),
+
+  removePlayer: (index) =>
+    set((state) => {
+      const newPlayers = [...state.players];
+      newPlayers.splice(index, 1);
+      return { players: newPlayers };
+    }),
 
   startGame: () =>
     set((state) => {
@@ -152,6 +171,11 @@ export const useGameStore = create<GameState>((set, get) => ({
           };
           return { players: updatedPlayers };
         });
+
+      speakText(message, 'Google русский'); // или без имени, тогда возьмёт дефолт
+
+      }).catch((e) => {
+        console.error("Ошибка нейрокомментатора, дебил!", e);
       });
     }
   },
@@ -203,12 +227,16 @@ export const useGameStore = create<GameState>((set, get) => ({
   clearError: () => set({ error: null }),
 
   setUseNeuralCommentator: (value) =>
-    set((state) => {
-      console.log('setUseNeuralCommentator:', value);
+    set(() => {
       return { useNeuralCommentator: value };
     }),
 
   setVibe: (vibe) => set({ vibe }),
 
   setInitialScore: (score) => set({ initialScore: score }),
+
+  shufflePlayers: () => set((state) => {
+    const shuffled = [...state.players].sort(() => Math.random() - 0.5);
+    return { players: shuffled };
+  }),
 }));
