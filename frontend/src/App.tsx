@@ -1,7 +1,14 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+
+import Confetti from 'react-confetti';
+
+import { toast } from 'react-toastify';
+import { sendToMattermost } from './api/mattermostHooks';
+import { formatResultsTable } from './utils/formatResult';
+
 
 import { useGameStore } from './store/gameStore';
 import PlayerHistory from './components/PlayerHistory';
@@ -46,6 +53,15 @@ const App: React.FC = () => {
 
   const nameInputRef = useRef<HTMLInputElement>(null);
   const throwInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight })
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight })
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   useEffect(() => {
     if (!gameStarted && !gameEnded && nameInputRef.current) {
@@ -104,11 +120,11 @@ const App: React.FC = () => {
             <div className={styles.shuffleWrapper}>
               <button
                 onClick={shufflePlayers}
-                className={styles.shuffleButton}
+                className={styles.addButton}
                 disabled={players.length < 2}
                 title="Перемешать игроков"
               >
-                🎲 Перемешать
+                🎲
               </button>
             </div>
           </div>
@@ -182,7 +198,7 @@ const App: React.FC = () => {
       {gameStarted && !gameEnded && (
         <div className={styles.game}>
           <h2 className={styles.currentPlayer}>
-            Раунд {round} | Сейчас кидает: {players[currentPlayerIndex]?.name || 'Никто, дебил!'}
+            Раунд {round} | Сейчас кидает: <span className={styles.currentPlayerName}>{players[currentPlayerIndex]?.name || 'Никто, дебил!'}</span>
           </h2>
           {error && <Alert message={error} onClose={clearError} />}
           <div className={styles.columns}>
@@ -199,8 +215,8 @@ const App: React.FC = () => {
                   </h3>
                   <div className={styles.playerColumns}>
                     <div className={styles.playerLeft}>
-                      <p>Осталось: {player.score}</p>
-                      <p>Набрано: {calculatePlayerTotalScore(player.throws)}</p>
+                      <p>Осталось: <span>{player.score}</span></p>
+                      <p>Набрано: <span>{calculatePlayerTotalScore(player.throws)}</span></p>
                     </div>
                     <div className={styles.playerRight}>
                       {player.lastThrow !== undefined && (
@@ -216,7 +232,7 @@ const App: React.FC = () => {
                     onClick={() => setHistoryPlayer(player)}
                     className={styles.historyButton}
                   >
-                    История
+                    📊 История
                   </button>
                 </div>
               ))}
@@ -240,7 +256,7 @@ const App: React.FC = () => {
                   Итого: {calculateTotalScore()}
                 </div>
                 <button onClick={submitThrows} className={styles.button}>
-                  Зачесть, дебил!
+                  Зачесть, дебил! ✍️
                 </button>
               </div>
             </div>
@@ -250,6 +266,12 @@ const App: React.FC = () => {
 
       {gameEnded && (
         <div className={styles.results}>
+          <Confetti     
+            width={windowSize.width}
+            height={windowSize.height}
+            numberOfPieces={75}
+            recycle={true} 
+          />
           <h2 className={styles.subtitle}>Игра окончена, лохи!</h2>
           <table className={styles.table}>
             <thead>
@@ -257,6 +279,7 @@ const App: React.FC = () => {
                 <th>Место</th>
                 <th>Игрок</th>
                 <th>Медаль</th>
+                <th>Раунды</th> 
               </tr>
             </thead>
             <tbody>
@@ -267,6 +290,7 @@ const App: React.FC = () => {
                     <td>{player.place || '-'}</td>
                     <td>{player.name}</td>
                     <td>{getMedal(player.place)}</td>
+                    <td>{player.rounds}</td>
                   </tr>
                 ))}
             </tbody>
@@ -274,19 +298,39 @@ const App: React.FC = () => {
           <div className={styles.resultsGraph}>
             <h3 className={styles.subtitle}>Прогресс игроков</h3>
             <PlayerScoreGraph
-              throws={players.reduce((acc, player) => ({
-                ...acc,
-                [player.name]: player.throws
-              }), {} as Record<string, number[]>)}
+              throws={players.reduce(
+                (acc, player) => ({
+                  ...acc,
+                  [player.name]: player.throws,
+                }),
+                {} as Record<string, number[]>
+              )}
               isMultiPlayer
             />
           </div>
-          <button onClick={resetGame} className={styles.button}>
-            Новая игра, дебилы!
-          </button>
+          <div className={styles.resultsButtons}>
+            <button onClick={resetGame} className={styles.button}>
+              Новая игра, дебилы!
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  const message = formatResultsTable(players, round); // Передаём round
+                  console.log('Сообщение для Mattermost:', message);
+                  await sendToMattermost(message);
+                  toast.success('Результаты отправлены в Mattermost, молодец, не обосрался!');
+                } catch (error) {
+                  console.error('Ошибка отправки:', error);
+                  toast.error('Пиздец, не смог отправить в Mattermost! Чекни консоль, дебил!');
+                }
+              }}
+              className={styles.button}
+            >
+              Отправить в Mattermost, лохи!
+            </button>
+          </div>
         </div>
       )}
-
       {historyPlayer && (
         <div className={styles.modal}>
           <div className={styles.modalContent}>

@@ -11,6 +11,7 @@ interface Player {
   lastThrow?: number;
   message?: string;
   isBust?: boolean;
+  rounds: number; // Добавляем поле для хранения количества раундов
 }
 
 interface GameState {
@@ -68,7 +69,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         return { error: 'Игрок с таким именем уже есть, дебил!' };
       }
       return {
-        players: [...state.players, { name, score: state.initialScore, throws: [] }],
+        players: [...state.players, { name, score: state.initialScore, throws: [], rounds: 0 }],
         inputName: '',
         error: null,
       };
@@ -87,6 +88,11 @@ export const useGameStore = create<GameState>((set, get) => ({
         return { error: 'Добавь хотя бы одного игрока, дебил!' };
       }
       return {
+        players: state.players.map((player) => ({
+          ...player,
+          score: state.initialScore,
+          rounds: 0,
+        })),
         gameStarted: true,
         throwInputs: Array(THROW_COUNT).fill([undefined, ''] as [number | undefined, Modifier]),
         round: 1,
@@ -116,8 +122,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       lastThrow: totalScore,
       message: undefined,
       isBust,
+      rounds: currentPlayer.score > 0 || newScore === 0 ? currentPlayer.rounds + 1 : currentPlayer.rounds, // Увеличиваем rounds для активного игрока
     };
 
+    // Присваиваем места
     let nextPlace = 1;
     const usedPlaces = newPlayers
       .filter((p) => p.place !== undefined)
@@ -138,22 +146,36 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
 
     const allFinished = newPlayers.every((player) => player.score === 0);
-    const nextPlayerIndex = allFinished
-      ? state.currentPlayerIndex
-      : newPlayers.findIndex((p, i) => i > state.currentPlayerIndex && p.score > 0) !== -1
-      ? newPlayers.findIndex((p, i) => i > state.currentPlayerIndex && p.score > 0)
-      : newPlayers.findIndex((p) => p.score > 0);
+    let nextPlayerIndex = state.currentPlayerIndex;
+
+    if (!allFinished) {
+      let found = false;
+      for (let i = 1; i <= state.players.length; i++) {
+        const nextIndex = (state.currentPlayerIndex + i) % state.players.length;
+        if (newPlayers[nextIndex].score > 0) {
+          nextPlayerIndex = nextIndex;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        nextPlayerIndex = 0;
+      }
+    }
+
+    const activePlayers = newPlayers.filter((p) => p.score > 0);
+    const isNewRound =
+      !allFinished &&
+      (nextPlayerIndex <= state.currentPlayerIndex ||
+        nextPlayerIndex === 0 ||
+        activePlayers.length === 1);
 
     set({
       players: newPlayers,
-      currentPlayerIndex: nextPlayerIndex === -1 ? 0 : nextPlayerIndex,
+      currentPlayerIndex: nextPlayerIndex,
       throwInputs: Array(THROW_COUNT).fill([undefined, ''] as [number | undefined, Modifier]),
       gameEnded: allFinished,
-      round: allFinished
-        ? state.round
-        : state.currentPlayerIndex > nextPlayerIndex && nextPlayerIndex !== -1
-        ? state.round + 1
-        : state.round,
+      round: allFinished ? state.round : isNewRound ? state.round + 1 : state.round,
     });
 
     if (state.useNeuralCommentator) {
@@ -162,6 +184,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         player: currentPlayer.name,
         isBust,
         newScore,
+        place: newPlayers[state.currentPlayerIndex].place,
       }, state.vibe).then((message) => {
         set((prev) => {
           const updatedPlayers = [...prev.players];
@@ -171,15 +194,12 @@ export const useGameStore = create<GameState>((set, get) => ({
           };
           return { players: updatedPlayers };
         });
-
-      speakText(message, 'Google русский'); // или без имени, тогда возьмёт дефолт
-
+        speakText(message, 'Милена');
       }).catch((e) => {
         console.error("Ошибка нейрокомментатора, дебил!", e);
       });
     }
   },
-
   resetGame: () =>
     set({
       players: [],
