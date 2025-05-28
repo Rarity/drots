@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Darts Game</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #fff;
+        }
+        canvas {
+            border: 5px solid #fff;
+        }
+        #score, #throws {
+            font-size: 24px;
+            margin: 10px;
+        }
+        #reset {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #ff4444;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #reset:hover {
+            background-color: #cc0000;
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Score: 0</div>
+    <div id="throws">Throws left: 🚀🚀🚀</div>
+    <canvas id="dartboard" width="500" height="500"></canvas>
+    <button id="reset">Reset Game</button>
+
+    <script>
+        const canvas = document.getElementById('dartboard');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score');
+        const throwsDisplay = document.getElementById('throws');
+        const resetButton = document.getElementById('reset');
+
+        let score = 0;
+        let throwsLeft = 3;
+        let hits = [];
+
+        const sectors = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = 200;
+        const bullseyeRadius = 12;
+        const outerBullRadius = 24;
+        const doubleRadius = radius;
+        const tripleRadius = radius * 0.60;
+        const tripleWidth = 15;
+        const doubleWidth = 15;
+        const anglePerSector = (Math.PI * 2) / 20;
+        const rotationOffset = -Math.PI / 2 - (anglePerSector / 2);
+
+        function drawDartboard() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw outer background
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius + 30, 0, Math.PI * 2);
+            ctx.fillStyle = '#333';
+            ctx.fill();
+
+            // Draw main board
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#000';
+            ctx.fill();
+
+            // Draw sectors with swapped colors
+            for (let i = 0; i < 20; i++) {
+                const startAngle = i * anglePerSector + rotationOffset;
+                const endAngle = (i + 1) * anglePerSector + rotationOffset;
+
+                // Outer single ring
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.fillStyle = i % 2 === 0 ? '#000' : '#fff';
+                ctx.fill();
+
+                // Triple ring segment
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, tripleRadius, startAngle, endAngle);
+                ctx.arc(centerX, centerY, tripleRadius - tripleWidth, endAngle, startAngle, true);
+                ctx.fillStyle = i % 2 === 0 ? '#00ff00' : '#ff0000';
+                ctx.fill();
+
+                // Inner single ring
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, tripleRadius - tripleWidth, startAngle, endAngle);
+                ctx.fillStyle = i % 2 === 0 ? '#000' : '#fff';
+                ctx.fill();
+
+                // Double ring segment
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, doubleRadius, startAngle, endAngle);
+                ctx.arc(centerX, centerY, doubleRadius - doubleWidth, endAngle, startAngle, true);
+                ctx.fillStyle = i % 2 === 0 ? '#00ff00' : '#ff0000';
+                ctx.fill();
+            }
+
+            // Draw outer bull (25)
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, outerBullRadius, 0, Math.PI * 2);
+            ctx.fillStyle = '#00ff00';
+            ctx.fill();
+
+            // Draw bullseye (50)
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, bullseyeRadius, 0, Math.PI * 2);
+            ctx.fillStyle = '#ff0000';
+            ctx.fill();
+
+            // Draw sector lines
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 20; i++) {
+                const angle = i * anglePerSector + rotationOffset;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(centerX + radius * Math.cos(angle), centerY + radius * Math.sin(angle));
+                ctx.stroke();
+            }
+
+            // Draw numbers
+            ctx.font = 'bold 18px Arial';
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            for (let i = 0; i < 20; i++) {
+                const angle = i * anglePerSector + rotationOffset + (anglePerSector / 2);
+                const x = centerX + (radius + 15) * Math.cos(angle);
+                const y = centerY + (radius + 15) * Math.sin(angle);
+                ctx.fillText(sectors[i], x, y);
+            }
+
+            // Draw hit points
+            for (const hit of hits) {
+                ctx.beginPath();
+                ctx.arc(hit.x, hit.y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#ff4444';
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        }
+
+        function getScore(x, y) {
+            const dx = x - centerX;
+            const dy = y - centerY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            let baseScore = 0;
+
+            // Bullseye and outer bull
+            if (distance <= bullseyeRadius) return 50;
+            if (distance <= outerBullRadius) return 25;
+
+            if (distance > radius) return 0;
+
+            // Calculate sector
+            const angle = Math.atan2(dy, dx);
+            const normalizedAngle = (angle + Math.PI * 2 - rotationOffset) % (Math.PI * 2);
+            const sectorIndex = Math.floor(normalizedAngle / anglePerSector);
+            baseScore = sectors[sectorIndex];
+
+            // Triple ring
+            if (distance >= tripleRadius - tripleWidth && distance <= tripleRadius) {
+                return baseScore * 3;
+            }
+
+            // Double ring
+            if (distance >= doubleRadius - doubleWidth && distance <= doubleRadius) {
+                return baseScore * 2;
+            }
+
+            // Single score
+            return baseScore;
+        }
+
+        canvas.addEventListener('pointerdown', (event) => {
+            if (throwsLeft > 0) {
+                const x = event.offsetX;
+                const y = event.offsetY;
+                const points = getScore(x, y);
+                score += points;
+                throwsLeft--;
+                hits.push({ x, y });
+                scoreDisplay.textContent = `Score: ${score}`;
+                throwsDisplay.textContent = `Throws left: ${'🚀'.repeat(throwsLeft)}${'💥'.repeat(3 - throwsLeft)}`;
+                drawDartboard();
+            }
+        });
+
+        resetButton.addEventListener('click', () => {
+            score = 0;
+            throwsLeft = 3;
+            hits = [];
+            scoreDisplay.textContent = `Score: ${score}`;
+            throwsDisplay.textContent = `Throws left: ${'🚀'.repeat(throwsLeft)}`;
+            drawDartboard();
+        });
+
+        drawDartboard();
+    </script>
+</body>
+</html>

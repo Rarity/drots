@@ -13,7 +13,7 @@ import { formatResultsTable } from './utils/formatResult';
 import { useGameStore } from './store/gameStore';
 import PlayerHistory from './components/PlayerHistory';
 import PlayerScoreGraph from './components/PlayerScoreGraph';
-import ThrowInputRow from './components/ThrowInputRow';
+import ThrowTabs from './components/ThrowTabs';
 // import SavedPlayersMultiSelect from "./components//SavedPlayersMultiSelect";
 
 import Alert from './components/Alert';
@@ -27,7 +27,6 @@ const App: React.FC = () => {
     gameStarted,
     gameEnded,
     inputName,
-    throwInputs,
     historyPlayer,
     error,
     round,
@@ -37,13 +36,9 @@ const App: React.FC = () => {
     addPlayer,
     removePlayer,
     startGame,
-    handleThrowInput,
-    submitThrows,
     resetGame,
     setHistoryPlayer,
     setInputName,
-    calculateThrowScore,
-    calculateTotalScore,
     clearError,
     setUseNeuralCommentator,
     setVibe,
@@ -94,7 +89,6 @@ const App: React.FC = () => {
   return (
     <div className={styles.container}>
       <h1 className={styles.title}>Берись за дрот! 🎯</h1>
-
       {!gameStarted && !gameEnded && (
         <div className={styles.setup}>
           <div className={styles.inputWrapper}>
@@ -219,13 +213,14 @@ const App: React.FC = () => {
                       <p>Набрано: <span>{calculatePlayerTotalScore(player.throws)}</span></p>
                     </div>
                     <div className={styles.playerRight}>
-                      {player.lastThrow !== undefined && (
+                      {/* {player.lastThrow !== undefined && ( */}
                         <p className={player.isBust ? styles.bust : styles.lastThrow}>
                           Последний: {player.lastThrow}
                           {player.isBust ? ' - ПЕРЕБОР!' : ''}
                         </p>
-                      )}
-                      {player.message && <p className={styles.message}>{player.message}</p>}
+                      {/* )} */}
+                      {/* {player.message && <p className={styles.message}>{player.message}</p>} */}
+                      <p className={styles.message}>{player.message}</p>
                     </div>
                   </div>
                   <button
@@ -238,27 +233,7 @@ const App: React.FC = () => {
               ))}
             </div>
             <div className={styles.controlsColumn}>
-              <div className={styles.throwSection}>
-                <h3 className={styles.subtitle}>Броски</h3>
-                {throwInputs.map((row, rowIndex) => (
-                  <ThrowInputRow
-                    key={rowIndex}
-                    rowIndex={rowIndex}
-                    score={row[0]}
-                    modifier={row[1] || ''}
-                    onThrowInput={(index, score, modifier) =>
-                      handleThrowInput(index, score, modifier)
-                    }
-                    calculateThrowScore={calculateThrowScore}
-                  />
-                ))}
-                <div className={styles.totalScore}>
-                  Итого: {calculateTotalScore()}
-                </div>
-                <button onClick={submitThrows} className={styles.button}>
-                  Зачесть, дебил! ✍️
-                </button>
-              </div>
+                  <ThrowTabs />
             </div>
           </div>
         </div>

@@ -3,7 +3,7 @@ import { Modifier } from '../constants';
 import { fetchInsultMessage, Vibe } from '../api/neuroApi';
 import { speakText } from '../utils/speakText';
 
-interface Player {
+export interface Player {
   name: string;
   score: number;
   throws: number[];
@@ -11,7 +11,7 @@ interface Player {
   lastThrow?: number;
   message?: string;
   isBust?: boolean;
-  rounds: number; // Добавляем поле для хранения количества раундов
+  rounds: number;
 }
 
 interface GameState {
@@ -20,7 +20,7 @@ interface GameState {
   gameStarted: boolean;
   gameEnded: boolean;
   inputName: string;
-  throwInputs: Array<[number | undefined, Modifier]>;
+  throwInputs: Array<[number | undefined, Modifier, { x: number, y: number } | undefined]>;
   historyPlayer: Player | null;
   error: string | null;
   round: number;
@@ -30,7 +30,7 @@ interface GameState {
   addPlayer: (name: string) => void;
   removePlayer: (index: number) => void;
   startGame: () => void;
-  handleThrowInput: (rowIndex: number, score: number | undefined, modifier: Modifier) => void;
+  handleThrowInput: (rowIndex: number, score: number | undefined, modifier: Modifier, coords?: { x: number, y: number }) => void;
   submitThrows: () => void;
   resetGame: () => void;
   setHistoryPlayer: (player: Player | null) => void;
@@ -42,6 +42,7 @@ interface GameState {
   setVibe: (vibe: Vibe) => void;
   setInitialScore: (score: 301 | 501) => void;
   shufflePlayers: () => void;
+  resetThrows: () => void;
 }
 
 const THROW_COUNT = 3;
@@ -52,7 +53,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   gameStarted: false,
   gameEnded: false,
   inputName: '',
-  throwInputs: Array(THROW_COUNT).fill([undefined, ''] as [number | undefined, Modifier]),
+  throwInputs: Array(THROW_COUNT).fill([undefined, '', undefined] as [number | undefined, Modifier, { x: number, y: number } | undefined]),
   historyPlayer: null,
   error: null,
   round: 1,
@@ -94,16 +95,16 @@ export const useGameStore = create<GameState>((set, get) => ({
           rounds: 0,
         })),
         gameStarted: true,
-        throwInputs: Array(THROW_COUNT).fill([undefined, ''] as [number | undefined, Modifier]),
+        throwInputs: Array(THROW_COUNT).fill([undefined, '', undefined] as [number | undefined, Modifier, { x: number, y: number } | undefined]),
         round: 1,
         error: null,
       };
     }),
 
-  handleThrowInput: (rowIndex, score, modifier) =>
+  handleThrowInput: (rowIndex, score, modifier, coords) =>
     set((state) => {
       const newThrowInputs = [...state.throwInputs];
-      newThrowInputs[rowIndex] = [score, modifier];
+      newThrowInputs[rowIndex] = [score, modifier, coords];
       return { throwInputs: newThrowInputs, error: null };
     }),
 
@@ -122,10 +123,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       lastThrow: totalScore,
       message: undefined,
       isBust,
-      rounds: currentPlayer.score > 0 || newScore === 0 ? currentPlayer.rounds + 1 : currentPlayer.rounds, // Увеличиваем rounds для активного игрока
+      rounds: currentPlayer.score > 0 || newScore === 0 ? currentPlayer.rounds + 1 : currentPlayer.rounds,
     };
 
-    // Присваиваем места
     let nextPlace = 1;
     const usedPlaces = newPlayers
       .filter((p) => p.place !== undefined)
@@ -173,7 +173,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({
       players: newPlayers,
       currentPlayerIndex: nextPlayerIndex,
-      throwInputs: Array(THROW_COUNT).fill([undefined, ''] as [number | undefined, Modifier]),
+      throwInputs: Array(THROW_COUNT).fill([undefined, '', undefined] as [number | undefined, Modifier, { x: number, y: number } | undefined]),
       gameEnded: allFinished,
       round: allFinished ? state.round : isNewRound ? state.round + 1 : state.round,
     });
@@ -200,6 +200,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       });
     }
   },
+
   resetGame: () =>
     set({
       players: [],
@@ -207,7 +208,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       gameStarted: false,
       gameEnded: false,
       inputName: '',
-      throwInputs: Array(THROW_COUNT).fill([undefined, ''] as [number | undefined, Modifier]),
+      throwInputs: Array(THROW_COUNT).fill([undefined, '', undefined] as [number | undefined, Modifier, { x: number, y: number } | undefined]),
       historyPlayer: null,
       error: null,
       round: 1,
@@ -240,16 +241,23 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
+  resetThrows: () =>
+    set({
+        throwInputs: [
+            [undefined, "", undefined],
+            [undefined, "", undefined],
+            [undefined, "", undefined],
+        ],
+        error: null,
+    }),
+
   calculateTotalScore: () => {
     return get().throwInputs.reduce((sum, _, index) => sum + get().calculateThrowScore(index), 0);
   },
 
   clearError: () => set({ error: null }),
 
-  setUseNeuralCommentator: (value) =>
-    set(() => {
-      return { useNeuralCommentator: value };
-    }),
+  setUseNeuralCommentator: (value) => set({ useNeuralCommentator: value }),
 
   setVibe: (vibe) => set({ vibe }),
 

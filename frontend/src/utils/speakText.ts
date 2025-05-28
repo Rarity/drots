@@ -15,7 +15,7 @@ export const speakText = (text: string, voiceName?: string) => {
     return;
   }
 
-  const utter = new SpeechSynthesisUtterance(cleanedText);
+  const utter = new SpeechSynthesisUtterance(text);
 
   // Ищем голос по имени, если задан
   if (voiceName) {
