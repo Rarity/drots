@@ -1,0 +1,96 @@
+.throwSection {
+  padding: 1rem;
+  background: linear-gradient(359deg, #323a48, #374151);
+  border: 1px solid #49576a;
+  border-radius: 0.5rem;
+}
+
+.totalScore {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+
+.tabWrapper {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.tabButton {
+  padding: 8px 16px;
+  font-weight: bold;
+  border-radius: 4px;
+  background-color: #555;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.tabButton.activeTab {
+  background-color: #007bff;
+}
+
+.inputRows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.button {
+  padding: 0.75rem;
+  background: linear-gradient(349deg, #c8ae40, #ffe476);
+  color: #1f2937;
+  border-radius: 0.5rem;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.button:hover {
+  background: linear-gradient(349deg, #c5ac3b, #ffd363);
+}
+
+.button:disabled {
+  background: #4b5563;
+  cursor: not-allowed;
+}
+
+.subtitle {
+  margin-top: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.throwIndicators {
+  font-size: 2rem;
+  text-align: center;
+}
+
+.resetButton {
+  padding: 4px;
+  font-size: 1.2rem;
+  background-color: transparent;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  transition: background-color 0.2s;
+}
+
+.resetButton:hover {
+  background-color: #666;
+}
+
+.controlButtons {
+  display: flex;
+  justify-content: space-between;
+}

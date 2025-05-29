@@ -35,8 +35,8 @@ const ThrowInputRow: React.FC<ThrowInputRowProps> = ({
   };
 
   const handleScoreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value === '' ? undefined : Number(e.target.value);
-    if (value !== undefined && value < 0) return;
+    const value = e.target.value ?? ''
+    // if (value !== undefined && value < 0) return;
     updateThrow(value);
   };
 

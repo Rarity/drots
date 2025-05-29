@@ -3,7 +3,7 @@ import { Modifier } from '../constants';
 import { fetchInsultMessage, Vibe } from '../api/neuroApi';
 import { speakText } from '../utils/speakText';
 
-interface Player {
+export interface Player {
   name: string;
   score: number;
   throws: number[];
@@ -11,6 +11,7 @@ interface Player {
   lastThrow?: number;
   message?: string;
   isBust?: boolean;
+  rounds: number;
 }
 
 interface GameState {
@@ -19,7 +20,7 @@ interface GameState {
   gameStarted: boolean;
   gameEnded: boolean;
   inputName: string;
-  throwInputs: Array<[number | undefined, Modifier]>;
+  throwInputs: Array<[number | undefined, Modifier, { x: number, y: number } | undefined]>;
   historyPlayer: Player | null;
   error: string | null;
   round: number;
@@ -29,7 +30,7 @@ interface GameState {
   addPlayer: (name: string) => void;
   removePlayer: (index: number) => void;
   startGame: () => void;
-  handleThrowInput: (rowIndex: number, score: number | undefined, modifier: Modifier) => void;
+  handleThrowInput: (rowIndex: number, score: number | undefined, modifier: Modifier, coords?: { x: number, y: number }) => void;
   submitThrows: () => void;
   resetGame: () => void;
   setHistoryPlayer: (player: Player | null) => void;
@@ -41,6 +42,7 @@ interface GameState {
   setVibe: (vibe: Vibe) => void;
   setInitialScore: (score: 301 | 501) => void;
   shufflePlayers: () => void;
+  resetThrows: () => void;
 }
 
 const THROW_COUNT = 3;
@@ -51,7 +53,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   gameStarted: false,
   gameEnded: false,
   inputName: '',
-  throwInputs: Array(THROW_COUNT).fill([undefined, ''] as [number | undefined, Modifier]),
+  throwInputs: Array(THROW_COUNT).fill([undefined, '', undefined] as [number | undefined, Modifier, { x: number, y: number } | undefined]),
   historyPlayer: null,
   error: null,
   round: 1,
@@ -68,7 +70,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         return { error: 'Игрок с таким именем уже есть, дебил!' };
       }
       return {
-        players: [...state.players, { name, score: state.initialScore, throws: [] }],
+        players: [...state.players, { name, score: state.initialScore, throws: [], rounds: 0 }],
         inputName: '',
         error: null,
       };
@@ -87,17 +89,22 @@ export const useGameStore = create<GameState>((set, get) => ({
         return { error: 'Добавь хотя бы одного игрока, дебил!' };
       }
       return {
+        players: state.players.map((player) => ({
+          ...player,
+          score: state.initialScore,
+          rounds: 0,
+        })),
         gameStarted: true,
-        throwInputs: Array(THROW_COUNT).fill([undefined, ''] as [number | undefined, Modifier]),
+        throwInputs: Array(THROW_COUNT).fill([undefined, '', undefined] as [number | undefined, Modifier, { x: number, y: number } | undefined]),
         round: 1,
         error: null,
       };
     }),
 
-  handleThrowInput: (rowIndex, score, modifier) =>
+  handleThrowInput: (rowIndex, score, modifier, coords) =>
     set((state) => {
       const newThrowInputs = [...state.throwInputs];
-      newThrowInputs[rowIndex] = [score, modifier];
+      newThrowInputs[rowIndex] = [score, modifier, coords];
       return { throwInputs: newThrowInputs, error: null };
     }),
 
@@ -116,6 +123,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       lastThrow: totalScore,
       message: undefined,
       isBust,
+      rounds: currentPlayer.score > 0 || newScore === 0 ? currentPlayer.rounds + 1 : currentPlayer.rounds,
     };
 
     let nextPlace = 1;
@@ -138,22 +146,36 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
 
     const allFinished = newPlayers.every((player) => player.score === 0);
-    const nextPlayerIndex = allFinished
-      ? state.currentPlayerIndex
-      : newPlayers.findIndex((p, i) => i > state.currentPlayerIndex && p.score > 0) !== -1
-      ? newPlayers.findIndex((p, i) => i > state.currentPlayerIndex && p.score > 0)
-      : newPlayers.findIndex((p) => p.score > 0);
+    let nextPlayerIndex = state.currentPlayerIndex;
+
+    if (!allFinished) {
+      let found = false;
+      for (let i = 1; i <= state.players.length; i++) {
+        const nextIndex = (state.currentPlayerIndex + i) % state.players.length;
+        if (newPlayers[nextIndex].score > 0) {
+          nextPlayerIndex = nextIndex;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        nextPlayerIndex = 0;
+      }
+    }
+
+    const activePlayers = newPlayers.filter((p) => p.score > 0);
+    const isNewRound =
+      !allFinished &&
+      (nextPlayerIndex <= state.currentPlayerIndex ||
+        nextPlayerIndex === 0 ||
+        activePlayers.length === 1);
 
     set({
       players: newPlayers,
-      currentPlayerIndex: nextPlayerIndex === -1 ? 0 : nextPlayerIndex,
-      throwInputs: Array(THROW_COUNT).fill([undefined, ''] as [number | undefined, Modifier]),
+      currentPlayerIndex: nextPlayerIndex,
+      throwInputs: Array(THROW_COUNT).fill([undefined, '', undefined] as [number | undefined, Modifier, { x: number, y: number } | undefined]),
       gameEnded: allFinished,
-      round: allFinished
-        ? state.round
-        : state.currentPlayerIndex > nextPlayerIndex && nextPlayerIndex !== -1
-        ? state.round + 1
-        : state.round,
+      round: allFinished ? state.round : isNewRound ? state.round + 1 : state.round,
     });
 
     if (state.useNeuralCommentator) {
@@ -162,6 +184,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         player: currentPlayer.name,
         isBust,
         newScore,
+        place: newPlayers[state.currentPlayerIndex].place,
       }, state.vibe).then((message) => {
         set((prev) => {
           const updatedPlayers = [...prev.players];
@@ -171,9 +194,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           };
           return { players: updatedPlayers };
         });
-
-      speakText(message, 'Google русский'); // или без имени, тогда возьмёт дефолт
-
+        speakText(message, 'Милена');
       }).catch((e) => {
         console.error("Ошибка нейрокомментатора, дебил!", e);
       });
@@ -187,7 +208,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       gameStarted: false,
       gameEnded: false,
       inputName: '',
-      throwInputs: Array(THROW_COUNT).fill([undefined, ''] as [number | undefined, Modifier]),
+      throwInputs: Array(THROW_COUNT).fill([undefined, '', undefined] as [number | undefined, Modifier, { x: number, y: number } | undefined]),
       historyPlayer: null,
       error: null,
       round: 1,
@@ -220,16 +241,23 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
+  resetThrows: () =>
+    set({
+        throwInputs: [
+            [undefined, "", undefined],
+            [undefined, "", undefined],
+            [undefined, "", undefined],
+        ],
+        error: null,
+    }),
+
   calculateTotalScore: () => {
     return get().throwInputs.reduce((sum, _, index) => sum + get().calculateThrowScore(index), 0);
   },
 
   clearError: () => set({ error: null }),
 
-  setUseNeuralCommentator: (value) =>
-    set(() => {
-      return { useNeuralCommentator: value };
-    }),
+  setUseNeuralCommentator: (value) => set({ useNeuralCommentator: value }),
 
   setVibe: (vibe) => set({ vibe }),
 
