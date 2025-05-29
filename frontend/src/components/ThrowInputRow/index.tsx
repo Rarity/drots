@@ -17,27 +17,29 @@ const ThrowInputRow: React.FC<ThrowInputRowProps> = ({
   onThrowInput,
   calculateThrowScore,
 }) => {
-  const [localScore, setLocalScore] = useState<number | undefined>(score);
+  const [localScore, setLocalScore] = useState<string>(score?.toString() ?? '');
   const [localModifier, setLocalModifier] = useState<Modifier>(modifier);
 
   useEffect(() => {
-    setLocalScore(score);
+    setLocalScore(score?.toString() ?? '');
     setLocalModifier(modifier);
   }, [score, modifier]);
 
   const updateThrow = (
-    newScore: number | undefined = localScore,
+    newScoreStr: string = localScore,
     newModifier: Modifier = localModifier,
   ) => {
-    setLocalScore(newScore);
+    setLocalScore(newScoreStr);
     setLocalModifier(newModifier);
-    onThrowInput(rowIndex, newScore, newModifier);
+    const parsedScore = newScoreStr === '' ? undefined : Number(newScoreStr);
+    onThrowInput(rowIndex, parsedScore, newModifier);
   };
 
   const handleScoreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value ?? ''
-    // if (value !== undefined && value < 0) return;
-    updateThrow(value);
+    const value = e.target.value;
+    if (/^\d*$/.test(value)) {
+      updateThrow(value);
+    }
   };
 
   const handleCheckboxChange = (selectedModifier: Modifier) => {
@@ -52,12 +54,14 @@ const ThrowInputRow: React.FC<ThrowInputRowProps> = ({
   return (
     <div className={styles.throwRow}>
       <input
-        type="number"
-        value={localScore ?? ''}
+        type="text"
+        value={localScore}
         onChange={handleScoreChange}
         onWheel={handleWheel}
         placeholder="Счет"
         className={styles.scoreInput}
+        inputMode="numeric"
+        pattern="[0-9]*"
       />
       <div className={styles.modifierGroup}>
         {MODIFIERS.map((mod) => (
