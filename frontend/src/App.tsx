@@ -290,7 +290,7 @@ const App: React.FC = () => {
             <button
               onClick={async () => {
                 try {
-                  const message = formatResultsTable(players, round); // Передаём round
+                  const message = formatResultsTable(players, round, initialScore); // Передаём round
                   console.log('Сообщение для Mattermost:', message);
                   await sendToMattermost(message);
                   toast.success('Результаты отправлены в Mattermost, молодец, не обосрался!');
