@@ -2,74 +2,104 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
+	"darts-backend/db"
+	"darts-backend/db/repository"
+
 	"github.com/joho/godotenv"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 func main() {
-	// Загружаем .env
 	if err := godotenv.Load(); err != nil {
 		log.Println("Не удалось загрузить .env, используем переменные окружения")
 	}
 
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	ctx := context.Background()
+	db, err := db.NewDB(ctx)
+	if err != nil {
+		log.Fatalf("Не могу запустить базу, дебил: %v", err)
+	}
+	defer db.Close()
 
-	// Добавляем middleware для CORS
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173"}, // Укажи твой прод-домен
-		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
-		AllowCredentials: false,
-		MaxAge:           300, // Кэш префлайт-запросов
+	userRepo := repository.NewUserRepository(db)
+
+	e := echo.New()
+	e.Use(middleware.Logger())
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost:5173"},
+		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodOptions},
+		AllowHeaders: []string{echo.HeaderAccept, echo.HeaderAuthorization, echo.HeaderContentType},
+		MaxAge:       300,
 	}))
 
-	// Логирование запросов
-	r.Use(middleware.Logger)
-
-	// Эндпоинт для отправки в Mattermost
-	r.Post("/send-to-mattermost", func(w http.ResponseWriter, r *http.Request) {
+	e.POST("/send-to-mattermost", func(c echo.Context) error {
 		var payload struct {
 			Message string `json:"message"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		if err := c.Bind(&payload); err != nil {
 			log.Printf("Ошибка декодирования JSON: %v", err)
-			http.Error(w, "Invalid request", http.StatusBadRequest)
-			return
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
 		}
 
-		webhookUrl := os.Getenv("MATTERMOST_HOOK")
-		if webhookUrl == "" {
-			log.Println("MATTERMOST_HOOK не указан в .env")
-			http.Error(w, "Mattermost webhook URL not configured", http.StatusInternalServerError)
-			return
+		webhookURL := os.Getenv("MATTERMOST_HOOK")
+		if webhookURL == "" {
+			log.Println("MATTERMOST_HOOK не указан")
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Mattermost webhook URL not configured"})
 		}
 
 		data := map[string]string{"text": payload.Message}
 		body, _ := json.Marshal(data)
-		resp, err := http.Post(webhookUrl, "application/json", bytes.NewBuffer(body))
+		resp, err := http.Post(webhookURL, "application/json", bytes.NewBuffer(body))
 		if err != nil {
 			log.Printf("Ошибка отправки в Mattermost: %v", err)
-			http.Error(w, "Failed to send to Mattermost", http.StatusInternalServerError)
-			return
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to send to Mattermost"})
 		}
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
 			log.Printf("Mattermost вернул статус %d", resp.StatusCode)
-			http.Error(w, "Mattermost returned non-OK status", resp.StatusCode)
-			return
+			return c.JSON(resp.StatusCode, map[string]string{"error": "Mattermost returned non-OK status"})
 		}
 
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Sent to Mattermost, дебил!"))
+		return c.JSON(http.StatusOK, map[string]string{"message": "Sent to Mattermost, дебил!"})
+	})
+
+	e.POST("/api/register", func(c echo.Context) error {
+		var req struct {
+			Login    string `json:"login"`
+			Password string `json:"password"`
+			Color    string `json:"color"`
+		}
+		if err := c.Bind(&req); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
+		}
+
+		if req.Login == "" || req.Password == "" || req.Color == "" {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Missing required fields"})
+		}
+
+		err := userRepo.Register(c.Request().Context(), req.Login, req.Password, req.Color)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, map[string]string{"message": "User registered, дебил!"})
+	})
+
+	e.GET("/api/users", func(c echo.Context) error {
+		users, err := userRepo.GetUsers(c.Request().Context())
+		if err != nil {
+			log.Printf("Ошибка получения юзеров: %v", err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+		return c.JSON(http.StatusOK, users)
 	})
 
 	port := os.Getenv("PORT")
@@ -77,5 +107,7 @@ func main() {
 		port = "8080"
 	}
 	log.Printf("Запускаем сервер на :%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, r))
+	if err := e.Start(":" + port); err != nil {
+		log.Fatalf("Сервер упал, дебил: %v", err)
+	}
 }
