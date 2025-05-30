@@ -8,6 +8,8 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 
 	echoSwagger "github.com/swaggo/echo-swagger"
+
+	_ "darts-backend/docs"
 )
 
 func Register(e *echo.Echo, repo *repository.UserRepository) {

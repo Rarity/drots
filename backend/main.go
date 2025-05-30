@@ -4,12 +4,11 @@ import (
 	"context"
 	"log"
 	"os"
+	"strconv"
 
 	"darts-backend/api/routes"
 	"darts-backend/db"
 	"darts-backend/db/repository"
-
-	_ "darts-backend/docs"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
@@ -17,7 +16,10 @@ import (
 
 func main() {
 	if err := godotenv.Load(); err != nil {
-		log.Println("Не удалось загрузить .env, ну и похер")
+		log.Printf("Не удалось загрузить .env: %v, используем переменные окружения", err)
+	}
+	if os.Getenv("DATABASE_URL") == "" {
+		log.Fatalf("DATABASE_URL не установлен, без него не взлетим")
 	}
 
 	ctx := context.Background()
@@ -36,6 +38,10 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
+	if _, err := strconv.Atoi(port); err != nil {
+		log.Fatalf("Порт %s — это не число, дебил", port)
+	}
+
 	log.Printf("Сервер слушает порт %s", port)
 	if err := e.Start(":" + port); err != nil {
 		log.Fatalf("Сервер сдох: %v", err)
